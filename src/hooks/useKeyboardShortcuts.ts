@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useKanbanStore } from '../stores/useKanbanStore';
 
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
+  const location = useLocation();
   const kanbanAdd = useKanbanStore((s) => s.add);
 
   useEffect(() => {
@@ -16,6 +17,15 @@ export function useKeyboardShortcuts() {
       if (mod && e.key === 'k') {
         e.preventDefault();
         return;
+      }
+
+      // Slash for search focus (when on vault page)
+      if (e.key === '/' && location.pathname === '/vault') {
+        const searchInput = document.getElementById('snippet-search');
+        if (searchInput && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          searchInput.focus();
+        }
       }
 
       // Don't trigger shortcuts when typing in inputs/editor
@@ -32,12 +42,8 @@ export function useKeyboardShortcuts() {
       // Navigation: mod+1 through mod+6
       if (mod && !e.shiftKey) {
         const navMap: Record<string, string> = {
-          '1': '/',
-          '2': '/kanban',
-          '3': '/vault',
-          '4': '/impact',
-          '5': '/calendar',
-          '6': '/settings',
+          '1': '/', '2': '/kanban', '3': '/vault',
+          '4': '/impact', '5': '/calendar', '6': '/settings',
         };
         if (navMap[e.key]) {
           e.preventDefault();
@@ -57,14 +63,11 @@ export function useKeyboardShortcuts() {
             const blockerBtn = document.querySelector('[data-add-blocker]') as HTMLElement;
             blockerBtn?.click();
             break;
-          case 'escape':
-            // Close any open modals handled by components themselves
-            break;
         }
       }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate, kanbanAdd]);
+  }, [navigate, kanbanAdd, location.pathname]);
 }
