@@ -1,0 +1,6 @@
+{
+  "name": "jy-workstation-sync",
+  "version": "1.0.0",
+  "description": "Auto-import markdown exports from JY Workstation",
+  "main": "main.js"
+}

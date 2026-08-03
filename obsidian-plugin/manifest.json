@@ -1,0 +1,10 @@
+{
+  "id": "jy-workstation-sync",
+  "name": "JY Workstation Sync",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Auto-import markdown exports from JY Workstation web app into your Obsidian vault.",
+  "author": "Jun Yap",
+  "authorUrl": "https://github.com/yapjunyit-lgtm",
+  "isDesktopOnly": true
+}
