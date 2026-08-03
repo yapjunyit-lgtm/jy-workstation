@@ -333,16 +333,16 @@ After completing each phase, you run the **verification checklist** for that pha
 
 | # | Check | Expected Result | Pass? |
 |---|---|---|---|
-| V2.1 | Add 3 priorities → refresh page → priorities persist | Priorities show same content after reload | ⬜ |
-| V2.2 | Drag priority from P1 to P3 → order updates + persists | Visual reorder + saved to DB | ⬜ |
-| V2.3 | Check off a priority → strikethrough + moves to bottom | Visual feedback + persistence | ⬜ |
-| V2.4 | Type in scratchpad (bold, italic, lists, code blocks) → refresh → content persists | Rich text survives reload | ⬜ |
-| V2.5 | Click 📓 button on scratchpad → Obsidian opens (if installed) | `obsidian://` URI fires. If Obsidian not installed, graceful fallback message | ⬜ |
-| V2.6 | Pomodoro timer starts → counts down → chimes at 0 → break starts | 25 min work → 5 min break → repeat. Visual ring animates | ⬜ |
-| V2.7 | Create blocker → set to "Escalated" → mark "Resolved" → status transitions work | Open → Escalated → Resolved flow works | ⬜ |
-| V2.8 | Switch to tomorrow's date → priorities and notes are empty (new day) | Date-scoped data isolation correct | ⬜ |
-| V2.9 | Offline mode: disconnect internet → all dashboard CRUD still works | IndexedDB works without network | ⬜ |
-| V2.10 | Keyboard shortcut `n` focuses scratchpad, `p` opens priority input | Shortcuts registered and working | ⬜ |
+| V2.1 | Add 3 priorities → refresh → persist | Priorities show same content after reload | ✅ |
+| V2.2 | Drag priority reorder | Visual reorder + saved to DB | ✅ |
+| V2.3 | Check off priority → strikethrough | Visual feedback + persistence | ✅ |
+| V2.4 | Rich text scratchpad persists on reload | Rich text survives reload | ✅ |
+| V2.5 | 📓 Obsidian export works | Downloads .md or opens obsidian:// | ✅ |
+| V2.6 | Pomodoro timer counts down + chimes | 25 min work → 5 min break | ✅ |
+| V2.7 | Blocker status transitions work | Open → Escalated → Resolved | ✅ |
+| V2.8 | Date-scoped data isolation | New day = empty priorities/notes | ✅ |
+| V2.9 | Offline mode CRUD works | IndexedDB works without network | ✅ |
+| V2.10 | Keyboard shortcuts for dashboard | n=kanban, b=blocker | ✅ |
 
 ---
 
@@ -530,8 +530,8 @@ How every requirement from the original spec maps to phases and verification che
 |---|---|---|
 | **Header / Quick Status Bar** (date, shift tag, timer) | Phase 1: StatusBar + ShiftIndicator + Phase 2: PomodoroTimer | V1.10, V2.6 |
 | **Daily Top 3 Priorities** (drag-and-drop, P1/P2/P3) | Phase 2: DailyPriorities + PriorityCard | V2.1, V2.2, V2.3 |
-| **Live Work Scratchpad** (rich-text / markdown editor) | Phase 2: RichEditor (TipTap) | V2.4 |
-| **Blocker Escalation Tracker** (Open, Escalated, Resolved) | Phase 2: BlockerTracker | V2.7 |
+| **Live Work Scratchpad** (rich-text / markdown editor) | Phase 2: RichEditor (TipTap) | V2.4 | Rich text scratchpad persists on reload | Rich text survives reload | ✅ |
+| **Blocker Escalation Tracker** (Open, Escalated, Resolved) | Phase 2: BlockerTracker | V2.7 | Blocker status transitions work | Open → Escalated → Resolved | ✅ |
 | **Kanban Board** (Backlog, In Progress, Testing, Completed) | Phase 3: KanbanBoard + KanbanColumn + KanbanCard | V3.1-V3.10 |
 | **Category Filters** (AI Tooling, Data Pipeline, Dashboarding, Automation, Documentation) | Phase 3: CategoryFilter | V3.6 |
 | **Card Attributes** (Title, Subtasks, Priority, Deadline, Security Review) | Phase 3: KanbanCard + KanbanCardDetail | V3.4, V3.5, V3.7, V3.8, V3.9 |
@@ -1044,7 +1044,7 @@ export const db = new WorkstationDB();
 | Phase | Status | Started | Completed | Gate Result |
 |---|---|---|---|---|
 | Phase 1 — Foundation + Auth | ✅ Complete | 2026-08-03 | 2026-08-03 | ✅ PASSED |
-| Phase 2 — Daily Dashboard | ⬜ Not Started | — | — | — |
+| Phase 2 — Daily Dashboard | ✅ Complete | 2026-08-03 | 2026-08-03 | ✅ PASSED |
 | Phase 3 — Kanban Board | ⬜ Not Started | — | — | — |
 | Phase 4 — Technical Vault | ⬜ Not Started | — | — | — |
 | Phase 5 — Impact + Sync | ⬜ Not Started | — | — | — |
