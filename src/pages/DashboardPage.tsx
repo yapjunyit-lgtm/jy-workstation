@@ -1,13 +1,23 @@
+import { DailyPriorities } from '../components/dashboard/DailyPriorities';
+import { PomodoroTimer } from '../components/dashboard/PomodoroTimer';
+import { BlockerTracker } from '../components/dashboard/BlockerTracker';
+import { RichEditor } from '../components/scratchpad/RichEditor';
+
 export function DashboardPage() {
   return (
-    <div className="page-enter space-y-8">
-      <div className="card-static">
-        <h2 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-          👋 Welcome to your Dashboard
-        </h2>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Daily priorities, scratchpad, blockers, and Pomodoro timer will appear here.
-        </p>
+    <div className="page-enter">
+      <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 200px' }}>
+        {/* Main column */}
+        <div className="space-y-6">
+          <DailyPriorities />
+          <RichEditor />
+          <BlockerTracker />
+        </div>
+
+        {/* Side column */}
+        <div>
+          <PomodoroTimer />
+        </div>
       </div>
     </div>
   );
