@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useKanbanStore } from '../stores/useKanbanStore';
 
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
+  const kanbanAdd = useKanbanStore((s) => s.add);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -13,7 +15,6 @@ export function useKeyboardShortcuts() {
       // ⌘K — Command palette (global, even in inputs)
       if (mod && e.key === 'k') {
         e.preventDefault();
-        // Phase 6: CommandPalette toggle
         return;
       }
 
@@ -21,6 +22,7 @@ export function useKeyboardShortcuts() {
       if (
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
         target.isContentEditable ||
         target.closest('[contenteditable="true"]')
       ) {
@@ -43,23 +45,20 @@ export function useKeyboardShortcuts() {
         }
       }
 
-      // Global single-key shortcuts (no mod key)
+      // Global single-key shortcuts
       if (!mod && !e.ctrlKey && !e.altKey) {
         switch (e.key.toLowerCase()) {
           case 'n':
             e.preventDefault();
-            navigate('/kanban');
-            // Focus new task input
-            setTimeout(() => {
-              const btn = document.querySelector('[data-new-task]') as HTMLElement;
-              btn?.click();
-            }, 100);
+            kanbanAdd({ column: 'backlog', title: 'New Task' });
             break;
           case 'b':
             e.preventDefault();
-            // Focus blocker input
             const blockerBtn = document.querySelector('[data-add-blocker]') as HTMLElement;
             blockerBtn?.click();
+            break;
+          case 'escape':
+            // Close any open modals handled by components themselves
             break;
         }
       }
@@ -67,5 +66,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate]);
+  }, [navigate, kanbanAdd]);
 }
