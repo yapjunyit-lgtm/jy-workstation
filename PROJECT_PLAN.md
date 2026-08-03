@@ -295,7 +295,7 @@ After completing each phase, you run the **verification checklist** for that pha
 | V1.2 | `npm run build` completes without errors | `dist/` folder created | ✅ |
 | V1.3 | `npm run lint` passes (0 errors, 0 warnings) | Clean lint output | ✅ |
 | V1.4 | `npm run typecheck` passes (0 errors) | `tsc --noEmit` exits 0 | ✅ |
-| V1.5 | GitHub Actions deploys to Pages on push | Live URL loads without 404 | ⏳ (needs push) |
+| V1.5 | GitHub Actions deploys to Pages on push | Live URL loads without 404 | ✅ |
 | V1.6 | App shows LoginScreen on first visit (no session) | Sakura-styled login prompt appears | ✅ |
 | V1.7 | Setting a passphrase ≥12 chars works + redirects to dashboard | After setup: dashboard visible | ✅ |
 | V1.8 | Closing and reopening the tab auto-unlocks (session valid) | No login prompt — dashboard loads instantly | ✅ |
