@@ -25,7 +25,7 @@ export function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [cursorDate, setCursorDate] = useState(new Date());
   const blocks = useCalendarStore((s) => s.blocks);
-  const gcalEvents = useGCalStore((s) => s.events);
+  const gcalEvents = useGCalStore((s) => s.events || []);
 
   const navigate = (dir: 'prev' | 'next') => {
     const fns = {

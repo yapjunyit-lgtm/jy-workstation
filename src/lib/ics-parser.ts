@@ -56,22 +56,25 @@ export function parseICS(icsText: string): ICSEvent[] {
 }
 
 function parseICalDate(icalStr: string): Date {
-  // Format: YYYYMMDDTHHMMSSZ or YYYYMMDD
-  const year = parseInt(icalStr.slice(0, 4));
-  const month = parseInt(icalStr.slice(4, 6)) - 1;
-  const day = parseInt(icalStr.slice(6, 8));
-  
-  if (icalStr.length >= 15 && icalStr.includes('T')) {
-    const hour = parseInt(icalStr.slice(9, 11));
-    const min = parseInt(icalStr.slice(11, 13));
-    const sec = parseInt(icalStr.slice(13, 15));
-    if (icalStr.endsWith('Z')) {
-      return new Date(Date.UTC(year, month, day, hour, min, sec));
+  try {
+    const year = parseInt(icalStr.slice(0, 4)) || new Date().getFullYear();
+    const month = (parseInt(icalStr.slice(4, 6)) || 1) - 1;
+    const day = parseInt(icalStr.slice(6, 8)) || 1;
+
+    if (icalStr.length >= 15 && icalStr.includes('T')) {
+      const hour = parseInt(icalStr.slice(9, 11)) || 0;
+      const min = parseInt(icalStr.slice(11, 13)) || 0;
+      const sec = parseInt(icalStr.slice(13, 15)) || 0;
+      if (icalStr.endsWith('Z')) {
+        return new Date(Date.UTC(year, month, day, hour, min, sec));
+      }
+      return new Date(year, month, day, hour, min, sec);
     }
-    return new Date(year, month, day, hour, min, sec);
+
+    return new Date(year, month, day);
+  } catch {
+    return new Date();
   }
-  
-  return new Date(year, month, day);
 }
 
 export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
