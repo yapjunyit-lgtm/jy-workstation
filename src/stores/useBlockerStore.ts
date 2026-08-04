@@ -19,7 +19,8 @@ export const useBlockerStore = create<BlockerState>((set) => ({
 
   hydrate: async () => {
     set({ loading: true });
-    const blockers = await db.blockers.orderBy('createdAt').reverse().toArray();
+    const arr = await db.blockers.toArray();
+    const blockers = arr.sort((a, b) => b.createdAt - a.createdAt);
     set({ blockers, loading: false });
   },
 

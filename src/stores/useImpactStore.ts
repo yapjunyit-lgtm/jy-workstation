@@ -24,11 +24,13 @@ export const useImpactStore = create<ImpactState>((set) => ({
 
   hydrate: async () => {
     set({ loading: true });
-    const [starEntries, sopDocuments] = await Promise.all([
-      db.starEntries.orderBy('createdAt').reverse().toArray(),
-      db.sopDocuments.orderBy('lastEdited').reverse().toArray(),
+    const [stars, sops] = await Promise.all([
+      db.starEntries.toArray(),
+      db.sopDocuments.toArray(),
     ]);
-    set({ starEntries, sopDocuments, loading: false });
+    stars.sort((a, b) => b.createdAt - a.createdAt);
+    sops.sort((a, b) => b.lastEdited - a.lastEdited);
+    set({ starEntries: stars, sopDocuments: sops, loading: false });
   },
 
   addStar: async (entry) => {

@@ -28,12 +28,17 @@ export const useVaultStore = create<VaultState>((set, get) => ({
 
   hydrate: async () => {
     set({ loading: true });
-    const [snippets, dataSources, checklist] = await Promise.all([
-      db.snippets.orderBy('createdAt').reverse().toArray(),
-      db.dataSources.toArray(),
-      db.checklistItems.toArray(),
-    ]);
-    set({ snippets, dataSources, checklist, loading: false });
+    try {
+      const [snippets, dataSources, checklist] = await Promise.all([
+        db.snippets.toArray().then(arr => arr.sort((a, b) => b.createdAt - a.createdAt)),
+        db.dataSources.toArray(),
+        db.checklistItems.toArray(),
+      ]);
+      set({ snippets, dataSources, checklist, loading: false });
+    } catch (e) {
+      console.error('Vault hydrate failed:', e);
+      set({ loading: false });
+    }
   },
 
   addSnippet: async (partial) => {
