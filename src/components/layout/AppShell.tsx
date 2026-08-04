@@ -1,17 +1,17 @@
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { StatusBar } from './StatusBar';
+import { Rail } from './Rail';
+import { TopBar } from './TopBar';
 import { CommandPalette } from './CommandPalette';
 import { HelpOverlay } from './HelpOverlay';
 
 export function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-root)' }}>
-      <Sidebar />
+      <Rail />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <StatusBar />
-        <main className="flex-1 overflow-y-auto" style={{ padding: '24px 32px' }}>
-          <div className="max-w-content mx-auto">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto" style={{ padding: '24px 32px 48px' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
             <Outlet />
           </div>
         </main>

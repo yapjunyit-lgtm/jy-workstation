@@ -1,0 +1,105 @@
+import { useLocation } from 'react-router-dom';
+import { Search, Play, Pause } from 'lucide-react';
+import { ShiftIndicator } from '../dashboard/ShiftIndicator';
+import { useTimerStore } from '../../stores/useTimerStore';
+import { formatTimer } from '../../lib/utils';
+
+const PAGE_TITLES: Record<string, [string, string]> = {
+  '/':         ['Today', 'Daily command center'],
+  '/kanban':   ['Kanban', 'Tasks across lifecycle'],
+  '/vault':    ['Vault', 'Prompts, data, security'],
+  '/impact':   ['Impact', 'Career building tracker'],
+  '/calendar': ['Calendar', 'Work & study balance'],
+  '/settings': ['Settings', 'Preferences & backup'],
+};
+
+export function TopBar() {
+  const location = useLocation();
+  const [title, subtitle] = PAGE_TITLES[location.pathname] || ['JY Workstation', ''];
+  const { mode, isRunning, remainingSeconds, start, pause } = useTimerStore();
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const toggleTimer = () => {
+    if (mode === 'idle') {
+      useTimerStore.getState().setMode('pomodoro');
+      useTimerStore.getState().start();
+    } else if (isRunning) {
+      pause();
+    } else {
+      start();
+    }
+  };
+
+  return (
+    <header
+      className="flex items-center border-b gap-4"
+      style={{
+        height: 52,
+        background: 'var(--bg-root)',
+        borderColor: 'var(--border-color)',
+        padding: '0 24px',
+      }}
+    >
+      {/* Title */}
+      <div className="flex items-baseline gap-2 flex-shrink-0">
+        <span className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          {title}
+        </span>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</span>
+      </div>
+
+      <div className="flex-1" />
+
+      {/* Shift + date */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{dateStr}</span>
+        <ShiftIndicator />
+      </div>
+
+      {/* Search hint */}
+      <div
+        className="flex items-center gap-2 rounded px-2.5 py-1.5 border text-xs flex-shrink-0"
+        style={{
+          background: 'var(--bg-surface)',
+          borderColor: 'var(--border-color)',
+          color: 'var(--text-muted)',
+          minWidth: 200,
+        }}
+      >
+        <Search size={13} />
+        <span className="flex-1">Quick search...</span>
+        <kbd
+          className="font-mono text-[10px] px-1.5 py-0.5 rounded border"
+          style={{
+            background: 'var(--bg-subtle)',
+            borderColor: 'var(--border-color)',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          ⌘K
+        </kbd>
+      </div>
+
+      {/* Mini timer */}
+      <button
+        onClick={toggleTimer}
+        className="flex items-center gap-1.5 rounded px-2.5 py-1.5 border font-mono text-xs flex-shrink-0 transition-soft"
+        style={{
+          background: 'var(--bg-surface)',
+          borderColor: isRunning ? 'var(--accent)' : 'var(--border-color)',
+          color: isRunning ? 'var(--accent)' : 'var(--text-muted)',
+        }}
+        title="Toggle Pomodoro timer"
+      >
+        {isRunning ? <Pause size={11} /> : <Play size={11} />}
+        <span>{formatTimer(remainingSeconds)}</span>
+      </button>
+    </header>
+  );
+}

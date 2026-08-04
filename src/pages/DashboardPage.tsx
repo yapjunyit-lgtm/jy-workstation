@@ -5,20 +5,32 @@ import { RichEditor } from '../components/scratchpad/RichEditor';
 
 export function DashboardPage() {
   return (
-    <div className="page-enter">
-      <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 200px' }}>
-        {/* Main column */}
+    <div className="page-enter space-y-6">
+      {/* Big date header */}
+      <div className="flex items-baseline justify-between">
+        <div>
+          <div className="text-[56px] font-bold leading-none tracking-[-0.04em]" style={{ color: 'var(--text-primary)' }}>
+            {new Date().getDate()}
+          </div>
+          <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
+      </div>
+
+      {/* Main grid: priorities + blockers (left) | pomodoro (right) */}
+      <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
         <div className="space-y-6">
           <DailyPriorities />
-          <RichEditor />
           <BlockerTracker />
         </div>
-
-        {/* Side column */}
         <div>
           <PomodoroTimer />
         </div>
       </div>
+
+      {/* Scratchpad — full width */}
+      <RichEditor />
     </div>
   );
 }
