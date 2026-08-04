@@ -3,8 +3,11 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
 import { useGCalStore } from '../stores/useGCalStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
+import { isFirebaseConfigured, configureFirebase, getFirebaseConfig, clearFirebaseConfig } from '../lib/firebase';
+import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
+import type { FirebaseConfig } from '../lib/firebase';
 
-type SettingsTab = 'auth' | 'sync' | 'calendar' | 'backup';
+type SettingsTab = 'auth' | 'sync' | 'calendar' | 'cloud' | 'backup';
 
 export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('auth');
@@ -18,6 +21,7 @@ export function SettingsPage() {
           { id: 'auth' as const, label: 'Auth' },
           { id: 'sync' as const, label: 'Obsidian Sync' },
           { id: 'calendar' as const, label: 'Calendar' },
+          { id: 'cloud' as const, label: 'Cloud Sync' },
           { id: 'backup' as const, label: 'Backup' },
         ]).map((t) => (
           <button
@@ -38,6 +42,7 @@ export function SettingsPage() {
       {tab === 'auth' && <AuthTab />}
       {tab === 'sync' && <SyncTab />}
       {tab === 'calendar' && <CalendarTab />}
+      {tab === 'cloud' && <CloudTab />}
       {tab === 'backup' && <BackupTab />}
     </div>
   );
@@ -211,6 +216,121 @@ function BackupTab() {
       />
       {importing && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Importing...</p>}
       {msg && <p className="text-xs" style={{ color: msg.includes('Failed') ? 'var(--danger)' : 'var(--success)' }}>{msg}</p>}
+    </div>
+  );
+}
+
+// ── Cloud Tab (Firebase) ──
+function CloudTab() {
+  const [config, setConfig] = useState<FirebaseConfig>(getFirebaseConfig() || {
+    apiKey: '', authDomain: '', projectId: '', storageBucket: '', messagingSenderId: '', appId: '',
+  });
+  const [status, setStatus] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [stats, setStats] = useState<{ local: number; remote: number } | null>(null);
+
+  const connected = isFirebaseConfigured();
+
+  useEffect(() => {
+    if (connected) getCloudStats().then(setStats);
+  }, []);
+
+  const handleConnect = () => {
+    if (!config.apiKey || !config.projectId) {
+      setStatus('API Key and Project ID are required');
+      return;
+    }
+    configureFirebase(config);
+    setStatus('Connected!');
+    getCloudStats().then(setStats);
+  };
+
+  const handlePush = async () => {
+    setSyncing(true); setStatus('');
+    try {
+      const results = await pushAllToCloud();
+      const total = Object.values(results).reduce((a, b) => a + b, 0);
+      setStatus(`Pushed ${total} records to cloud`);
+      getCloudStats().then(setStats);
+    } catch (e: any) {
+      setStatus(`Push failed: ${e.message}`);
+    }
+    setSyncing(false);
+  };
+
+  const handlePull = async () => {
+    if (!confirm('This will REPLACE all local data with cloud data. Continue?')) return;
+    setSyncing(true); setStatus('');
+    try {
+      const results = await pullAllFromCloud();
+      const total = Object.values(results).reduce((a, b) => a + b, 0);
+      setStatus(`Pulled ${total} records from cloud. Reloading...`);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e: any) {
+      setStatus(`Pull failed: ${e.message}`);
+    }
+    setSyncing(false);
+  };
+
+  const handleDisconnect = () => {
+    if (confirm('Disconnect Firebase? Your local data is preserved.')) {
+      clearFirebaseConfig();
+      setStatus('Disconnected');
+      setStats(null);
+    }
+  };
+
+  return (
+    <div className="card-static max-w-lg space-y-4">
+      <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>☁️ Firebase Cloud Sync</h3>
+
+      {connected ? (
+        <div className="p-3 rounded-lg space-y-3" style={{ background: '#E2EDE4' }}>
+          <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>✅ Connected to Firebase</p>
+          {stats && (
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              📊 {stats.local} local records · {stats.remote} cloud records
+            </p>
+          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handlePush} disabled={syncing} className="btn-sakura btn-primary btn-sm">
+              {syncing ? 'Syncing...' : '📤 Push to Cloud'}
+            </button>
+            <button onClick={handlePull} disabled={syncing} className="btn-sakura btn-secondary btn-sm">
+              {syncing ? 'Syncing...' : '📥 Pull from Cloud'}
+            </button>
+            <button onClick={handleDisconnect} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
+              Disconnect
+            </button>
+          </div>
+          {status && <p className="text-xs" style={{ color: status.includes('Failed') ? 'var(--danger)' : 'var(--text-primary)' }}>{status}</p>}
+        </div>
+      ) : (
+        <>
+          <div className="p-3 rounded-lg space-y-2 text-xs" style={{ background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
+            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>📋 Setup steps:</p>
+            <ol className="space-y-1" style={{ paddingLeft: 16 }}>
+              <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Firebase Console</a> → Create Project</li>
+              <li>Build → Firestore Database → Create (production mode)</li>
+              <li>Project Settings → General → Web App → Register</li>
+              <li>Copy the Firebase config object below</li>
+            </ol>
+          </div>
+
+          <div className="space-y-2">
+            <input value={config.apiKey} onChange={(e) => setConfig({ ...config, apiKey: e.target.value })} placeholder="apiKey" className="input-sakura text-xs font-mono" />
+            <input value={config.authDomain} onChange={(e) => setConfig({ ...config, authDomain: e.target.value })} placeholder="authDomain" className="input-sakura text-xs font-mono" />
+            <input value={config.projectId} onChange={(e) => setConfig({ ...config, projectId: e.target.value })} placeholder="projectId" className="input-sakura text-xs font-mono" />
+            <input value={config.storageBucket} onChange={(e) => setConfig({ ...config, storageBucket: e.target.value })} placeholder="storageBucket" className="input-sakura text-xs font-mono" />
+            <input value={config.messagingSenderId} onChange={(e) => setConfig({ ...config, messagingSenderId: e.target.value })} placeholder="messagingSenderId" className="input-sakura text-xs font-mono" />
+            <input value={config.appId} onChange={(e) => setConfig({ ...config, appId: e.target.value })} placeholder="appId" className="input-sakura text-xs font-mono" />
+          </div>
+
+          <button onClick={handleConnect} className="btn-sakura btn-primary btn-sm">Connect</button>
+        </>
+      )}
+
+      {status && !connected && <p className="text-xs" style={{ color: 'var(--danger)' }}>{status}</p>}
     </div>
   );
 }

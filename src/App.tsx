@@ -10,14 +10,32 @@ import { VaultPage } from './pages/VaultPage';
 import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { isFirebaseConfigured } from './lib/firebase';
+import { pullAllFromCloud, pushAllToCloud } from './lib/cloud-sync';
 
 function AppContent() {
   const { isLocked, isSetup, isLoading, checkAuth } = useAuthStore();
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    checkAuth().then(() => setInitialized(true));
+    checkAuth().then(() => {
+      setInitialized(true);
+      // Auto-pull from cloud on startup if Firebase configured
+      if (isFirebaseConfigured()) {
+        pullAllFromCloud().catch(() => {});
+      }
+    });
   }, []);
+
+  // Auto-push to cloud periodically if configured
+  useEffect(() => {
+    if (!initialized || isLocked) return;
+    if (!isFirebaseConfigured()) return;
+    const interval = setInterval(() => {
+      pushAllToCloud().catch(() => {});
+    }, 5 * 60 * 1000); // Every 5 minutes
+    return () => clearInterval(interval);
+  }, [initialized, isLocked]);
 
   if (!initialized || isLoading) {
     return (
