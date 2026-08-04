@@ -10,7 +10,7 @@ export function AppShell() {
       <Rail />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto" style={{ padding: '24px 32px 48px' }}>
+        <main className="app-main flex-1 overflow-y-auto" style={{ padding: '24px 32px 48px' }}>
           <div style={{ maxWidth: 1400, margin: '0 auto' }}>
             <Outlet />
           </div>

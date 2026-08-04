@@ -145,3 +145,102 @@
   @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
   @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile & Tablet
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Rail sidebar → bottom tab bar */
+  .app-rail {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: 56px;
+    flex-direction: row !important;
+    border-right: none !important;
+    border-top: 1px solid var(--border-color);
+    z-index: 50;
+    padding: 0 8px !important;
+    gap: 0 !important;
+    justify-content: space-around;
+    background: var(--bg-surface) !important;
+  }
+  .app-rail .rail-logo,
+  .app-rail .rail-divider,
+  .app-rail .rail-spacer,
+  .app-rail .rail-kbd { display: none !important; }
+  .app-rail a {
+    width: auto !important;
+    height: 44px !important;
+    flex: 1;
+  }
+  .app-rail a[title*="Settings"] { display: flex !important; }
+
+  /* TopBar compact */
+  .app-topbar {
+    padding: 0 12px !important;
+    height: 44px !important;
+    gap: 8px !important;
+  }
+  .app-topbar .topbar-search,
+  .app-topbar .topbar-mini-timer { display: none !important; }
+
+  /* Main content */
+  .app-main {
+    padding: 12px 12px 72px !important; /* bottom padding for tab bar */
+    max-width: 100% !important;
+  }
+
+  /* Dashboard grid → stack */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Kanban → horizontal scroll */
+  .kanban-board {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+    gap: 8px !important;
+  }
+  .kanban-board > div {
+    min-width: 260px !important;
+    max-width: 280px !important;
+    flex-shrink: 0;
+  }
+
+  /* Calendar views */
+  .year-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .month-day-cell { min-height: 60px !important; }
+
+  /* Cards */
+  .card, .card-static { padding: 14px !important; }
+
+  /* Settings tabs → scroll */
+  .settings-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Big date */
+  .big-date { font-size: 36px !important; }
+
+  /* Hide desktop-only elements */
+  .desktop-only { display: none !important; }
+}
+
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-main { padding: 16px 20px 32px !important; }
+  .year-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .kanban-board > div { min-width: 220px !important; }
+}

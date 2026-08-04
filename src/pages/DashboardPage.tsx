@@ -9,7 +9,7 @@ export function DashboardPage() {
       {/* Big date header */}
       <div className="flex items-baseline justify-between">
         <div>
-          <div className="text-[56px] font-bold leading-none tracking-[-0.04em]" style={{ color: 'var(--text-primary)' }}>
+          <div className="big-date text-[56px] font-bold leading-none tracking-[-0.04em]" style={{ color: 'var(--text-primary)' }}>
             {new Date().getDate()}
           </div>
           <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
@@ -19,7 +19,7 @@ export function DashboardPage() {
       </div>
 
       {/* Main grid: priorities + blockers (left) | pomodoro (right) */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
+      <div className="dashboard-grid grid gap-6" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
         <div className="space-y-6">
           <DailyPriorities />
           <BlockerTracker />

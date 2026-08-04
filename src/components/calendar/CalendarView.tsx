@@ -110,7 +110,7 @@ function YearGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: 
   const yearStart = startOfYear(cursorDate);
   const months = eachMonthOfInterval({ start: yearStart, end: new Date(yearStart.getFullYear(), 11, 1) });
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+    <div className="year-grid grid gap-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
       {months.map((ms) => {
         const me = endOfMonth(ms);
         const days = eachDayOfInterval({ start: startOfWeek(ms, { weekStartsOn: 1 }), end: endOfWeek(me, { weekStartsOn: 1 }) });

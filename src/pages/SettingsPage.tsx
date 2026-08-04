@@ -16,7 +16,7 @@ export function SettingsPage() {
     <div className="page-enter space-y-6">
       <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>⚙️ Settings</h2>
 
-      <div className="flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="settings-tabs flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
         {([
           { id: 'auth' as const, label: 'Auth' },
           { id: 'sync' as const, label: 'Obsidian Sync' },

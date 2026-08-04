@@ -38,7 +38,7 @@ export function TopBar() {
 
   return (
     <header
-      className="flex items-center border-b gap-4"
+      className="app-topbar flex items-center border-b gap-4"
       style={{
         height: 52,
         background: 'var(--bg-root)',
@@ -64,7 +64,7 @@ export function TopBar() {
 
       {/* Search hint */}
       <div
-        className="flex items-center gap-2 rounded px-2.5 py-1.5 border text-xs flex-shrink-0"
+        className="topbar-search flex items-center gap-2 rounded px-2.5 py-1.5 border text-xs flex-shrink-0"
         style={{
           background: 'var(--bg-surface)',
           borderColor: 'var(--border-color)',
@@ -89,7 +89,7 @@ export function TopBar() {
       {/* Mini timer */}
       <button
         onClick={toggleTimer}
-        className="flex items-center gap-1.5 rounded px-2.5 py-1.5 border font-mono text-xs flex-shrink-0 transition-soft"
+        className="topbar-mini-timer flex items-center gap-1.5 rounded px-2.5 py-1.5 border font-mono text-xs flex-shrink-0 transition-soft"
         style={{
           background: 'var(--bg-surface)',
           borderColor: isRunning ? 'var(--accent)' : 'var(--border-color)',

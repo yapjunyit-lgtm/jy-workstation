@@ -73,7 +73,7 @@ export function KanbanBoard() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
+        <div className="kanban-board flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
           {KANBAN_COLUMNS.map(({ id, label }) => (
             <KanbanColumn
               key={id}

@@ -15,7 +15,7 @@ export function Rail() {
 
   return (
     <aside
-      className="flex flex-col items-center border-r"
+      className="app-rail flex flex-col items-center border-r"
       style={{
         width: 56,
         background: 'var(--bg-surface)',
@@ -26,7 +26,7 @@ export function Rail() {
     >
       {/* Logo */}
       <div
-        className="flex items-center justify-center rounded-lg mb-3"
+        className="rail-logo flex items-center justify-center rounded-lg mb-3"
         style={{
           width: 32, height: 32,
           background: 'linear-gradient(135deg, var(--accent), var(--info))',
@@ -38,7 +38,7 @@ export function Rail() {
         J
       </div>
 
-      <div style={{ width: 24, height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
+      <div className="rail-divider" style={{ width: 24, height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
 
       {/* Nav items */}
       {NAV_ITEMS.map((item) => (
@@ -67,7 +67,7 @@ export function Rail() {
           )}
           <item.icon size={18} />
           <span
-            className="absolute top-0.5 right-0.5"
+            className="rail-kbd absolute top-0.5 right-0.5"
             style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-tertiary)' }}
           >
             {item.kbd}
@@ -75,7 +75,7 @@ export function Rail() {
         </NavLink>
       ))}
 
-      <div className="flex-1" />
+      <div className="rail-spacer flex-1" />
 
       {/* Settings */}
       <NavLink
