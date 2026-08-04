@@ -35,13 +35,22 @@ export const useGCalStore = create<GCalState>((set, get) => ({
 
   refresh: async () => {
     const { icsUrl } = get();
-    if (!icsUrl) return;
+    if (!icsUrl) {
+      console.log('GCal: No ICS URL configured');
+      return;
+    }
 
+    console.log('GCal: Fetching from', icsUrl.slice(0, 60) + '...');
     set({ loading: true, error: null });
     try {
       const events = await fetchICSFeed(icsUrl);
+      console.log('GCal: Parsed', events.length, 'events');
+      if (events.length > 0) {
+        console.log('GCal: First event:', events[0].title, events[0].start);
+      }
       set({ events, loading: false, lastFetched: Date.now() });
-    } catch (e) {
+    } catch (e: any) {
+      console.error('GCal: Fetch failed', e.message || e);
       set({ loading: false, error: 'Failed to fetch calendar. Check the URL or try again.' });
     }
   },

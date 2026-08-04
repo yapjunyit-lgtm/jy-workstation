@@ -10,7 +10,6 @@ import { useCalendarStore } from '../../stores/useCalendarStore';
 import { useGCalStore } from '../../stores/useGCalStore';
 import { TimeBlock } from './TimeBlock';
 import type { TimeBlock as TimeBlockType } from '../../lib/types';
-import type { ICSEvent } from '../../lib/ics-parser';
 
 type CalendarViewMode = 'year' | 'month' | 'week' | 'day';
 type Blocks = TimeBlockType[];
@@ -24,8 +23,25 @@ const GCAL_COLOR = '#4285F4';
 export function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [cursorDate, setCursorDate] = useState(new Date());
-  const blocks = useCalendarStore((s) => s.blocks);
+  const wsBlocks = useCalendarStore((s) => s.blocks);
   const gcalEvents = useGCalStore((s) => s.events || []);
+
+  // Merge GCal events as native time blocks
+  const gcalBlocks: TimeBlockType[] = useMemo(() => gcalEvents.map((e) => {
+    const startH = e.isAllDay ? START_HOUR : e.start.getHours() + e.start.getMinutes() / 60;
+    const endH = e.isAllDay ? END_HOUR : e.end.getHours() + e.end.getMinutes() / 60;
+    return {
+      id: e.uid,
+      date: format(e.start, 'yyyy-MM-dd'),
+      startHour: Math.max(startH, START_HOUR),
+      endHour: Math.min(endH, END_HOUR),
+      type: 'custom' as const,
+      label: e.title,
+      color: GCAL_COLOR,
+    };
+  }), [gcalEvents]);
+
+  const blocks = useMemo(() => [...wsBlocks, ...gcalBlocks], [wsBlocks, gcalBlocks]);
 
   const navigate = (dir: 'prev' | 'next') => {
     const fns = {
@@ -71,16 +87,16 @@ export function CalendarView() {
         </div>
       </div>
 
-      {viewMode==='year' && <YearGrid cursorDate={cursorDate} blocks={blocks} gcalEvents={gcalEvents} onSelect={(d) => { setCursorDate(d); setViewMode('month'); }} />}
-      {viewMode==='month' && <MonthGrid cursorDate={cursorDate} blocks={blocks} gcalEvents={gcalEvents} onSelect={(d) => { setCursorDate(d); setViewMode('day'); }} />}
-      {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} gcalEvents={gcalEvents} />}
-      {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} gcalEvents={gcalEvents} />}
+      {viewMode==='year' && <YearGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('month'); }} />}
+      {viewMode==='month' && <MonthGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('day'); }} />}
+      {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} />}
+      {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} />}
     </div>
   );
 }
 
 // ── YEAR ──
-function YearGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: Date; blocks: Blocks; gcalEvents: ICSEvent[]; onSelect: (d: Date) => void }) {
+function YearGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: Blocks; onSelect: (d: Date) => void }) {
   const yearStart = startOfYear(cursorDate);
   const months = eachMonthOfInterval({ start: yearStart, end: new Date(yearStart.getFullYear(), 11, 1) });
   return (
@@ -98,7 +114,7 @@ function YearGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: Da
               ))}
               {days.map((day) => {
                 const ds = format(day,'yyyy-MM-dd');
-                const hasBlock = blocks.some((b: TimeBlockType) => b.date===ds) || hasGCalEvent(gcalEvents, day);
+                const hasBlock = blocks.some((b) => b.date===ds);
                 const inM = isSameMonth(day, ms);
                 const cur = isToday(day);
                 return (
@@ -119,7 +135,7 @@ function YearGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: Da
 }
 
 // ── MONTH ──
-function MonthGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: Date; blocks: Blocks; gcalEvents: ICSEvent[]; onSelect: (d: Date) => void }) {
+function MonthGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: Blocks; onSelect: (d: Date) => void }) {
   const ms = startOfMonth(cursorDate);
   const me = endOfMonth(cursorDate);
   const days = eachDayOfInterval({ start: startOfWeek(ms, { weekStartsOn: 1 }), end: endOfWeek(me, { weekStartsOn: 1 }) });
@@ -136,7 +152,7 @@ function MonthGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: D
           <div key={wi} className="grid gap-px" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
             {week.map((day) => {
               const ds = format(day,'yyyy-MM-dd');
-              const dayBlocks = blocks.filter((b: TimeBlockType) => b.date===ds);
+              const dayBlocks = blocks.filter((b) => b.date===ds);
               const inM = isSameMonth(day, ms);
               const cur = isToday(day);
               return (
@@ -144,17 +160,11 @@ function MonthGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: D
                   style={{ background: !inM ? 'var(--bg-root)' : cur ? 'var(--accent-soft)' : 'var(--bg-surface)', borderColor: cur ? 'var(--accent)' : 'var(--border-color)', opacity: !inM ? 0.4 : 1 }}
                   onClick={() => onSelect(day)}>
                   <div className="text-xs font-medium mb-0.5" style={{ color: cur ? 'var(--accent)' : inM ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{format(day,'d')}</div>
-                  {dayBlocks.slice(0,2).map((b) => (
+                  {dayBlocks.slice(0,3).map((b) => (
                     <div key={b.id} className="text-[10px] truncate rounded px-1 py-0.5 mb-0.5"
                       style={{ background: b.color+'30', borderLeft: `2px solid ${b.color}`, color: 'var(--text-primary)' }}>{b.label}</div>
                   ))}
-                  {getGCalEventsForDate(gcalEvents, day).slice(0, 2 - Math.min(dayBlocks.length, 2)).map((e) => (
-                    <div key={e.uid} className="text-[10px] truncate rounded px-1 py-0.5 mb-0.5"
-                      style={{ background: GCAL_COLOR+'20', borderLeft: `2px solid ${GCAL_COLOR}`, color: GCAL_COLOR }}>{e.title}</div>
-                  ))}
-                  {dayBlocks.length + getGCalEventsForDate(gcalEvents, day).length > 2 && (
-                    <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+{dayBlocks.length + getGCalEventsForDate(gcalEvents, day).length - 2} more</div>
-                  )}
+                  {dayBlocks.length > 3 && <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+{dayBlocks.length-3} more</div>}
                 </div>
               );
             })}
@@ -166,7 +176,7 @@ function MonthGrid({ cursorDate, blocks, gcalEvents, onSelect }: { cursorDate: D
 }
 
 // ── WEEK ──
-function WeekGrid({ cursorDate, blocks, gcalEvents }: { cursorDate: Date; blocks: Blocks; gcalEvents: ICSEvent[] }) {
+function WeekGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) {
   const ws = startOfWeek(cursorDate, { weekStartsOn: 1 });
   const now = new Date();
   const curH = now.getHours() + now.getMinutes()/60;
@@ -193,25 +203,10 @@ function WeekGrid({ cursorDate, blocks, gcalEvents }: { cursorDate: Date; blocks
         {DAYS_SHORT.map((_, di) => {
           const date = addDays(ws, di);
           const ds = format(date,'yyyy-MM-dd');
-          const dayBlocks = blocks.filter((b: TimeBlockType) => b.date===ds);
+          const dayBlocks = blocks.filter((b) => b.date===ds);
           const cur = isToday(date);
-          const dayGcal = getGCalEventsForDate(gcalEvents, date);
           return <div key={di} className="flex-1 relative min-w-[80px] border-l" style={{ borderColor:'var(--border-color)' }}>
             {hours.map((h) => <div key={h} className="absolute left-0 right-0 border-t" style={{ top:(h-START_HOUR)*HOUR_HEIGHT, borderColor:'var(--border-color)', opacity:0.5 }} />)}
-            {/* GCal events */}
-            {dayGcal.filter((e: ICSEvent) => !e.isAllDay).slice(0, 2).map((e: ICSEvent) => {
-              const startH = e.start.getHours() + e.start.getMinutes()/60;
-              const endH = e.end.getHours() + e.end.getMinutes()/60;
-              if (startH < START_HOUR || startH > END_HOUR) return null;
-              const top = (startH - START_HOUR) * HOUR_HEIGHT;
-              const h = Math.max((endH - startH) * HOUR_HEIGHT, 20);
-              return (
-                <div key={e.uid} className="absolute left-1 right-1 rounded px-1 py-0.5 overflow-hidden text-[10px] z-5"
-                  style={{ top, height: h, background: GCAL_COLOR+'20', borderLeft: `2px solid ${GCAL_COLOR}`, color: GCAL_COLOR }}>
-                  {e.title}
-                </div>
-              );
-            })}
             {dayBlocks.map((b) => <TimeBlock key={b.id} block={b} hourHeight={HOUR_HEIGHT} startHour={START_HOUR} />)}
             {cur && curH>=START_HOUR && curH<=END_HOUR && (
               <div className="absolute left-0 right-0 z-10 flex items-center" style={{ top:(curH-START_HOUR)*HOUR_HEIGHT }}>
@@ -227,33 +222,17 @@ function WeekGrid({ cursorDate, blocks, gcalEvents }: { cursorDate: Date; blocks
 }
 
 // ── DAY ──
-function DayGrid({ cursorDate, blocks, gcalEvents }: { cursorDate: Date; blocks: Blocks; gcalEvents: ICSEvent[] }) {
+function DayGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) {
   const ds = format(cursorDate,'yyyy-MM-dd');
-  const dayBlocks = blocks.filter((b: TimeBlockType) => b.date===ds);
+  const dayBlocks = blocks.filter((b) => b.date===ds);
   const hours = Array.from({ length: END_HOUR-START_HOUR+1 }, (_, i) => START_HOUR+i);
   const now = new Date();
   const curH = now.getHours()+now.getMinutes()/60;
   const cur = isToday(cursorDate);
-  const dayGcalEvents = getGCalEventsForDate(gcalEvents, cursorDate);
   return (
     <div>
-      {/* GCal events summary for this day */}
-      {dayGcalEvents.length > 0 && (
-        <div className="mb-3 p-3 rounded-lg space-y-1" style={{ background: GCAL_COLOR+'10', border: `1px solid ${GCAL_COLOR}30` }}>
-          <div className="text-[11px] font-medium mb-1" style={{ color: GCAL_COLOR }}>📅 Google Calendar ({dayGcalEvents.length})</div>
-          {dayGcalEvents.map((e) => (
-            <div key={e.uid} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-primary)' }}>
-              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: GCAL_COLOR }} />
-              <span className="flex-1 truncate">{e.title}</span>
-              <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>
-                {e.isAllDay ? 'All day' : `${fmtHr(e.start.getHours() + e.start.getMinutes()/60)}`}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
       {hours.map((hour) => {
-        const hb = dayBlocks.filter((b: TimeBlockType) => b.startHour>=hour && b.startHour<hour+1);
+        const hb = dayBlocks.filter((b) => b.startHour>=hour && b.startHour<hour+1);
         const show = cur && curH>=hour && curH<hour+1;
         return (
           <div key={hour} className="flex border-t min-h-[52px]" style={{ borderColor:'var(--border-color)' }}>
@@ -285,15 +264,4 @@ function fmtHr(hour: number): string {
   const ampm = h>=12?'PM':'AM';
   const h12 = h>12?h-12:h===0?12:h;
   return m>0?`${h12}:${m.toString().padStart(2,'0')}${ampm}`:`${h12}${ampm}`;
-}
-
-// ── Google Calendar helpers ──
-function hasGCalEvent(events: ICSEvent[], date: Date): boolean {
-  const ds = format(date, 'yyyy-MM-dd');
-  return events.some((e) => format(e.start, 'yyyy-MM-dd') === ds);
-}
-
-function getGCalEventsForDate(events: ICSEvent[], date: Date): ICSEvent[] {
-  const ds = format(date, 'yyyy-MM-dd');
-  return events.filter((e) => format(e.start, 'yyyy-MM-dd') === ds);
 }
