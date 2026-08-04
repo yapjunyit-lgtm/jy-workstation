@@ -4,15 +4,16 @@ interface TimeBlockProps {
   block: TimeBlockType;
   hourHeight: number;
   startHour: number;
+  onClick?: (block: TimeBlockType) => void;
 }
 
-export function TimeBlock({ block, hourHeight, startHour }: TimeBlockProps) {
+export function TimeBlock({ block, hourHeight, startHour, onClick }: TimeBlockProps) {
   const top = (block.startHour - startHour) * hourHeight;
   const height = (block.endHour - block.startHour) * hourHeight;
 
   return (
     <div
-      className="absolute left-1 right-1 rounded-md px-2 py-1 overflow-hidden text-xs transition-soft cursor-pointer"
+      className="absolute left-1 right-1 rounded-md px-2 py-1 overflow-hidden text-xs transition-soft cursor-pointer hover:brightness-95"
       style={{
         top: `${top}px`,
         height: `${Math.max(height, 20)}px`,
@@ -21,6 +22,7 @@ export function TimeBlock({ block, hourHeight, startHour }: TimeBlockProps) {
         color: 'var(--text-primary)',
         lineHeight: 1.3,
       }}
+      onClick={(e) => { e.stopPropagation(); onClick?.(block); }}
     >
       <div className="font-medium truncate">{block.label}</div>
       {height > 30 && (

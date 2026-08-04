@@ -3,6 +3,15 @@ import { X, CalendarPlus, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCalendarStore } from '../../stores/useCalendarStore';
 import { generateGoogleCalendarLink } from '../../lib/ics-parser';
+import type { BlockType } from '../../lib/types';
+
+const CATEGORIES: { type: BlockType; label: string; color: string; emoji: string }[] = [
+  { type: 'work-shift',   label: 'Work',     color: '#C9A96E', emoji: '💼' },
+  { type: 'study',        label: 'Study',    color: '#8A9FB8', emoji: '📚' },
+  { type: 'custom',       label: 'Personal', color: '#8B9D83', emoji: '🏠' },
+  { type: 'sat-shift',    label: 'Health',   color: '#C4887C', emoji: '🏃' },
+  { type: 'commute',      label: 'Travel',   color: '#D5CFC6', emoji: '✈️' },
+];
 
 interface AddEventModalProps {
   preselectedDate?: Date;
@@ -13,9 +22,12 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
   const addBlock = useCalendarStore((s) => s.addBlock);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(preselectedDate ? format(preselectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(date);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [allDay, setAllDay] = useState(false);
+  const [multiDay, setMultiDay] = useState(false);
+  const [category, setCategory] = useState(CATEGORIES[0]);
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [added, setAdded] = useState(false);
@@ -23,10 +35,24 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
   const handleAddLocal = async () => {
     if (!title.trim()) return;
 
-    const startH = allDay ? 8 : parseTime(startTime);
-    const endH = allDay ? 18 : parseTime(endTime);
+    const startH = allDay ? 6 : parseTime(startTime);
+    const endH = allDay ? 22 : parseTime(endTime);
+    const label = description.trim() ? `${title.trim()} — ${description.trim().slice(0, 60)}` : title.trim();
 
-    await addBlock(date, startH, endH, 'custom', title.trim());
+    if (multiDay) {
+      // Create one block per day
+      const start = new Date(date + 'T00:00:00');
+      const end = new Date(endDate + 'T00:00:00');
+      const days: string[] = [];
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        days.push(format(d, 'yyyy-MM-dd'));
+      }
+      for (const day of days) {
+        await addBlock(day, startH, endH, category.type, label);
+      }
+    } else {
+      await addBlock(date, startH, endH, category.type, title.trim());
+    }
     setAdded(true);
   };
 
@@ -89,12 +115,45 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
             <div className="space-y-3">
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" className="input-sakura text-sm" autoFocus />
 
-              <div className="flex items-center gap-3">
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input-sakura text-sm flex-1" />
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
-                  <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
-                  All day
-                </label>
+              {/* Category picker */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.type}
+                    onClick={() => setCategory(cat)}
+                    className="text-[11px] px-2 py-1 rounded-full transition-soft border flex items-center gap-1"
+                    style={{
+                      color: category.type === cat.type ? 'white' : cat.color,
+                      background: category.type === cat.type ? cat.color : 'transparent',
+                      borderColor: cat.color,
+                    }}
+                  >
+                    {cat.emoji} {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Date range */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <input type="date" value={date} onChange={(e) => { setDate(e.target.value); if (!multiDay) setEndDate(e.target.value); }} className="input-sakura text-sm flex-1" />
+                  {multiDay && (
+                    <>
+                      <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>to</span>
+                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="input-sakura text-sm flex-1" />
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                    <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
+                    All day
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                    <input type="checkbox" checked={multiDay} onChange={(e) => setMultiDay(e.target.checked)} style={{ accentColor: 'var(--accent)' }} />
+                    Multi-day
+                  </label>
+                </div>
               </div>
 
               {!allDay && (
@@ -105,8 +164,8 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
                 </div>
               )}
 
-              <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className="input-sakura text-sm" />
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="input-sakura text-sm" rows={2} />
+              <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location or video link (optional)" className="input-sakura text-sm" />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description or notes (optional)" className="input-sakura text-sm" rows={2} />
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>

@@ -10,6 +10,7 @@ import { useCalendarStore } from '../../stores/useCalendarStore';
 import { useGCalStore } from '../../stores/useGCalStore';
 import { TimeBlock } from './TimeBlock';
 import { AddEventModal } from './AddEventModal';
+import { EditEventModal } from './EditEventModal';
 import type { TimeBlock as TimeBlockType } from '../../lib/types';
 
 type CalendarViewMode = 'year' | 'month' | 'week' | 'day';
@@ -25,6 +26,7 @@ export function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [cursorDate, setCursorDate] = useState(new Date());
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<TimeBlockType | null>(null);
   const wsBlocks = useCalendarStore((s) => s.blocks);
   const gcalEvents = useGCalStore((s) => s.events || []);
 
@@ -94,10 +96,11 @@ export function CalendarView() {
 
       {viewMode==='year' && <YearGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('month'); }} />}
       {viewMode==='month' && <MonthGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('day'); }} />}
-      {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} />}
-      {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} />}
+      {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} onBlockClick={setEditingBlock} />}
+      {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} onBlockClick={setEditingBlock} />}
 
       {showAddEvent && <AddEventModal preselectedDate={cursorDate} onClose={() => setShowAddEvent(false)} />}
+      {editingBlock && <EditEventModal block={editingBlock} onClose={() => setEditingBlock(null)} />}
     </div>
   );
 }
@@ -183,7 +186,7 @@ function MonthGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks:
 }
 
 // ── WEEK ──
-function WeekGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) {
+function WeekGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; blocks: Blocks; onBlockClick: (b: TimeBlockType) => void }) {
   const ws = startOfWeek(cursorDate, { weekStartsOn: 1 });
   const now = new Date();
   const curH = now.getHours() + now.getMinutes()/60;
@@ -214,7 +217,7 @@ function WeekGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) 
           const cur = isToday(date);
           return <div key={di} className="flex-1 relative min-w-[80px] border-l" style={{ borderColor:'var(--border-color)' }}>
             {hours.map((h) => <div key={h} className="absolute left-0 right-0 border-t" style={{ top:(h-START_HOUR)*HOUR_HEIGHT, borderColor:'var(--border-color)', opacity:0.5 }} />)}
-            {dayBlocks.map((b) => <TimeBlock key={b.id} block={b} hourHeight={HOUR_HEIGHT} startHour={START_HOUR} />)}
+            {dayBlocks.map((b) => <TimeBlock key={b.id} block={b} hourHeight={HOUR_HEIGHT} startHour={START_HOUR} onClick={onBlockClick} />)}
             {cur && curH>=START_HOUR && curH<=END_HOUR && (
               <div className="absolute left-0 right-0 z-10 flex items-center" style={{ top:(curH-START_HOUR)*HOUR_HEIGHT }}>
                 <div className="w-2 h-2 rounded-full -ml-1" style={{ background:'var(--danger)' }} /><div className="flex-1 h-px" style={{ background:'var(--danger)' }} />
@@ -229,7 +232,7 @@ function WeekGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) 
 }
 
 // ── DAY ──
-function DayGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) {
+function DayGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; blocks: Blocks; onBlockClick: (b: TimeBlockType) => void }) {
   const ds = format(cursorDate,'yyyy-MM-dd');
   const dayBlocks = blocks.filter((b) => b.date===ds);
   const hours = Array.from({ length: END_HOUR-START_HOUR+1 }, (_, i) => START_HOUR+i);
@@ -253,7 +256,8 @@ function DayGrid({ cursorDate, blocks }: { cursorDate: Date; blocks: Blocks }) {
                 </div>
               )}
               {hb.map((b) => (
-                <div key={b.id} className="rounded px-2 py-1 ml-1 mr-2 text-xs" style={{ background: b.color+'25', borderLeft: `3px solid ${b.color}`, color: 'var(--text-primary)' }}>
+                <div key={b.id} className="rounded px-2 py-1 ml-1 mr-2 text-xs cursor-pointer hover:brightness-95" style={{ background: b.color+'25', borderLeft: `3px solid ${b.color}`, color: 'var(--text-primary)' }}
+                  onClick={() => onBlockClick(b)}>
                   <span className="font-medium">{b.label}</span>
                   <span className="ml-2" style={{ color:'var(--text-tertiary)', fontSize:10 }}>{fmtHr(b.startHour)} – {fmtHr(b.endHour)}</span>
                 </div>
