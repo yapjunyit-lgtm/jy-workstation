@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
+import { useGCalStore } from '../stores/useGCalStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
 
-type SettingsTab = 'auth' | 'sync' | 'backup';
+type SettingsTab = 'auth' | 'sync' | 'calendar' | 'backup';
 
 export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('auth');
@@ -15,7 +16,8 @@ export function SettingsPage() {
       <div className="flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
         {([
           { id: 'auth' as const, label: 'Auth' },
-          { id: 'sync' as const, label: 'Sync' },
+          { id: 'sync' as const, label: 'Obsidian Sync' },
+          { id: 'calendar' as const, label: 'Calendar' },
           { id: 'backup' as const, label: 'Backup' },
         ]).map((t) => (
           <button
@@ -35,6 +37,7 @@ export function SettingsPage() {
 
       {tab === 'auth' && <AuthTab />}
       {tab === 'sync' && <SyncTab />}
+      {tab === 'calendar' && <CalendarTab />}
       {tab === 'backup' && <BackupTab />}
     </div>
   );
@@ -208,6 +211,77 @@ function BackupTab() {
       />
       {importing && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Importing...</p>}
       {msg && <p className="text-xs" style={{ color: msg.includes('Failed') ? 'var(--danger)' : 'var(--success)' }}>{msg}</p>}
+    </div>
+  );
+}
+
+// ── Calendar Tab (Google Calendar ICS) ──
+function CalendarTab() {
+  const { icsUrl, events, loading, error, lastFetched, setIcsUrl, loadFromStorage, refresh } = useGCalStore();
+  const [url, setUrl] = useState(icsUrl);
+
+  useEffect(() => { loadFromStorage(); }, []);
+  useEffect(() => { setUrl(icsUrl); }, [icsUrl]);
+
+  const handleSave = () => {
+    setIcsUrl(url.trim());
+    if (url.trim()) refresh();
+  };
+
+  return (
+    <div className="card-static max-w-lg space-y-4">
+      <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Google Calendar Sync</h3>
+
+      <div className="p-3 rounded-lg space-y-2" style={{ background: 'var(--bg-subtle)' }}>
+        <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+          📋 How to get your ICS link:
+        </p>
+        <ol className="text-xs space-y-1" style={{ color: 'var(--text-secondary)', paddingLeft: 16 }}>
+          <li>Open <a href="https://calendar.google.com/calendar/u/0/settings" target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Google Calendar Settings</a></li>
+          <li>Click your calendar under "Settings for my calendars"</li>
+          <li>Scroll to <strong>"Secret address in iCal format"</strong></li>
+          <li>Copy the URL and paste it below</li>
+        </ol>
+      </div>
+
+      <div>
+        <label className="text-[10px] block mb-1" style={{ color: 'var(--text-tertiary)' }}>Secret iCal URL</label>
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://calendar.google.com/calendar/ical/..."
+          className="input-sakura text-sm font-mono"
+        />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button onClick={handleSave} className="btn-sakura btn-primary btn-sm">Save & Fetch</button>
+        <button onClick={refresh} className="btn-sakura btn-secondary btn-sm" disabled={!icsUrl}>
+          Refresh Events
+        </button>
+      </div>
+
+      {loading && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Fetching calendar events...</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
+      {lastFetched && !loading && (
+        <div className="space-y-2">
+          <p className="text-xs" style={{ color: 'var(--success)' }}>
+            ✅ {events.length} events loaded · Last synced: {new Date(lastFetched).toLocaleTimeString()}
+          </p>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {events.slice(0, 5).map((e) => (
+              <div key={e.uid} className="text-xs flex items-center gap-2 py-1" style={{ color: 'var(--text-secondary)' }}>
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#4285F4' }} />
+                <span className="truncate">{e.title}</span>
+                <span style={{ color: 'var(--text-tertiary)' }}>{new Date(e.start).toLocaleDateString()}</span>
+              </div>
+            ))}
+            {events.length > 5 && (
+              <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+{events.length - 5} more events</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
