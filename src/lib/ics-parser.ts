@@ -75,10 +75,34 @@ function parseICalDate(icalStr: string): Date {
 }
 
 export async function fetchICSFeed(url: string): Promise<ICSEvent[]> {
-  // Use a CORS proxy since Google Calendar ICS feeds don't allow direct browser access
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-  const text = await response.text();
+  let text = '';
+
+  // Try direct fetch first — Google ICS feeds support CORS
+  try {
+    const response = await fetch(url);
+    if (response.ok) {
+      text = await response.text();
+    }
+  } catch { /* direct fetch failed, try proxies */ }
+
+  // Fallback to CORS proxies
+  if (!text) {
+    const proxies = [
+      `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    ];
+    for (const proxyUrl of proxies) {
+      try {
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          text = await response.text();
+          break;
+        }
+      } catch { continue; }
+    }
+  }
+
+  if (!text) throw new Error('Could not fetch calendar. Check the URL or try again later.');
   return parseICS(text);
 }
 
