@@ -5,10 +5,11 @@ import {
   addYears, subYears, eachDayOfInterval, eachMonthOfInterval,
   isSameMonth, isToday, startOfYear,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useCalendarStore } from '../../stores/useCalendarStore';
 import { useGCalStore } from '../../stores/useGCalStore';
 import { TimeBlock } from './TimeBlock';
+import { AddEventModal } from './AddEventModal';
 import type { TimeBlock as TimeBlockType } from '../../lib/types';
 
 type CalendarViewMode = 'year' | 'month' | 'week' | 'day';
@@ -23,6 +24,7 @@ const GCAL_COLOR = '#4285F4';
 export function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [cursorDate, setCursorDate] = useState(new Date());
+  const [showAddEvent, setShowAddEvent] = useState(false);
   const wsBlocks = useCalendarStore((s) => s.blocks);
   const gcalEvents = useGCalStore((s) => s.events || []);
 
@@ -76,6 +78,9 @@ export function CalendarView() {
           <h3 className="text-base font-semibold min-w-[180px] text-center" style={{ color: 'var(--text-primary)' }}>{title}</h3>
           <button onClick={() => navigate('next')} className="btn-sakura btn-ghost btn-sm"><ChevronRight size={16} /></button>
           <button onClick={goToday} className="btn-sakura btn-secondary btn-sm text-xs">Today</button>
+          <button onClick={() => setShowAddEvent(true)} className="btn-sakura btn-primary btn-sm text-xs flex items-center gap-1">
+            <Plus size={12} /> Add Event
+          </button>
         </div>
         <div className="flex items-center rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
           {(['year','month','week','day'] as CalendarViewMode[]).map((m) => (
@@ -91,6 +96,8 @@ export function CalendarView() {
       {viewMode==='month' && <MonthGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('day'); }} />}
       {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} />}
       {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} />}
+
+      {showAddEvent && <AddEventModal preselectedDate={cursorDate} onClose={() => setShowAddEvent(false)} />}
     </div>
   );
 }
