@@ -14,7 +14,7 @@
 import { createServer } from 'node:http';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, writeFile, mkdir, appendFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, appendFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -31,6 +31,53 @@ const DAILY_DIR = join(VAULT, '10-Daily');
 const TEMPLATE_FILE = join(VAULT, '90-Templates', 'Daily Note Template.md');
 
 const startedAt = Date.now();
+
+// Serve the built web app (dist/) alongside the API so the AI page can be
+// opened at http://127.0.0.1:4788/jy-workstation/ — same origin, no CORS or
+// mixed-content blocking (works even in embedded/WebView browsers).
+const APP_DIR = resolve(import.meta.dirname, '../dist');
+const APP_PREFIX = '/jy-workstation/';
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.json': 'application/json; charset=utf-8',
+  '.woff2': 'font/woff2',
+};
+
+function mimeFor(pathname) {
+  const ext = pathname.slice(pathname.lastIndexOf('.'));
+  return MIME[ext] || 'application/octet-stream';
+}
+
+async function serveStatic(req, res, pathname) {
+  let rel = pathname === '/' ? 'index.html' : pathname;
+  if (rel.startsWith(APP_PREFIX)) rel = rel.slice(APP_PREFIX.length) || 'index.html';
+  if (!rel) rel = 'index.html';
+
+  let filePath = join(APP_DIR, rel);
+  if (!existsSync(filePath) || (await stat(filePath)).isDirectory()) {
+    filePath = join(APP_DIR, 'index.html'); // SPA fallback
+  }
+
+  try {
+    const body = await readFile(filePath);
+    res.writeHead(200, {
+      'Content-Type': mimeFor(filePath),
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Private-Network': 'true',
+    });
+    res.end(body);
+  } catch {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not found');
+  }
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────
 function todayLocal() {
@@ -275,6 +322,20 @@ const server = createServer(async (req, res) => {
     });
     res.end();
     return;
+  }
+
+  // Serve the built web app (same origin as the API)
+  if (req.method === 'GET' && url.pathname.startsWith('/')) {
+    if (url.pathname.startsWith('/api/')) {
+      // API routes handled below
+    } else if (url.pathname === '/') {
+      res.writeHead(302, { Location: APP_PREFIX });
+      res.end();
+      return;
+    } else {
+      await serveStatic(req, res, url.pathname);
+      return;
+    }
   }
 
   try {
