@@ -71,6 +71,8 @@ async function serveStatic(req, res, pathname) {
       'Content-Type': mimeFor(filePath),
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Private-Network': 'true',
+      // Local dev server: never cache so rebuilds are picked up instantly
+      'Cache-Control': 'no-store',
     });
     res.end(body);
   } catch {
