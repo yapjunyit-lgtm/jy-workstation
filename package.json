@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "deploy:firebase": "npm run build && npx firebase-tools deploy --only hosting,firestore:rules",
+    "firebase:login": "npx firebase-tools login"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

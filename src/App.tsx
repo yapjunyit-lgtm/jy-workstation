@@ -12,7 +12,7 @@ import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { isFirebaseConfigured } from './lib/firebase';
-import { pullAllFromCloud, pushAllToCloud } from './lib/cloud-sync';
+import { pushAllToCloud, pullAllFromCloud, attachAutoPush, startRealtimeSync } from './lib/cloud-sync';
 
 function AppContent() {
   const { isLocked, isSetup, isLoading, checkAuth } = useAuthStore();
@@ -21,20 +21,26 @@ function AppContent() {
   useEffect(() => {
     checkAuth().then(() => {
       setInitialized(true);
-      // Auto-pull from cloud on startup if Firebase configured
+      // Connect cloud sync once the local workspace is unlocked
       if (isFirebaseConfigured()) {
-        pullAllFromCloud().catch(() => {});
+        attachAutoPush();
+        startRealtimeSync().catch(() => {});
+        // Push local first so a fresh device uploads its data,
+        // then pull so this device gets everything from the cloud.
+        pushAllToCloud()
+          .then(() => pullAllFromCloud())
+          .catch(() => {});
       }
     });
   }, []);
 
-  // Auto-push to cloud periodically if configured
+  // Safety net: periodic push every 5 minutes if configured
   useEffect(() => {
     if (!initialized || isLocked) return;
     if (!isFirebaseConfigured()) return;
     const interval = setInterval(() => {
       pushAllToCloud().catch(() => {});
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [initialized, isLocked]);
 
