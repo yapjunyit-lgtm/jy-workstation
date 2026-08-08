@@ -13,6 +13,7 @@
 - **Impact Log** — STAR-method brag document, SOP tracker, 1:1 agenda generator
 - **Calendar** — Weekly view with work shifts (8:30–5:30), commute buffers, university study blocks
 - **Obsidian Sync** — Markdown export, `obsidian://` URI links, companion plugin for auto-import
+- **AI Vault Control** — One-click automations for the Obsidian vault (create today note, process inbox, health check, log work) with live console + git-tracked action ledger
 - **Offline PWA** — Install as standalone app, works without internet
 - **⌘K Command Palette** — Universal search across all tabs
 
@@ -30,6 +31,29 @@ npm install
 npm run dev        # Start dev server
 npm run build      # Production build
 ```
+
+## AI Vault Control — Local Bridge
+
+The **AI Vault** tab in the app talks to a local bridge server ([`server/vault-bridge.mjs`](server/vault-bridge.mjs)) that runs Codex CLI against the Obsidian vault (`/Users/jy/Desktop/JY_Vault`).
+
+Start the bridge in a second terminal:
+
+```bash
+npm run bridge
+```
+
+Then open the app → **AI Vault** (rail icon) → run automations. The console streams Codex output live; every action is appended to `JY_Workstation/_logs/actions.jsonl` in the vault and git-committed, so everything is traceable.
+
+**Endpoints** (`127.0.0.1:4788`, localhost only):
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | Bridge + Codex availability |
+| GET | `/api/vault/status` | Git state, today's note, ledger tail |
+| GET | `/api/vault/ledger?limit=20` | Recent actions |
+| POST | `/api/vault/actions` | Run an automation (SSE stream) |
+
+**Environment overrides:** `BRIDGE_PORT` (default 4788), `VAULT_PATH`, `CODEX_NODE`, `CODEX_CLI` for the server; `VITE_BRIDGE_URL` for the app.
 
 ## Deployment
 

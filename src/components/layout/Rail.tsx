@@ -1,12 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Kanban, BookOpen, TrendingUp, CalendarDays, Settings } from 'lucide-react';
+import { LayoutDashboard, Kanban, BookOpen, Bot, TrendingUp, CalendarDays, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/',         icon: LayoutDashboard, label: 'Dashboard', kbd: '1' },
   { to: '/kanban',   icon: Kanban,          label: 'Kanban',    kbd: '2' },
   { to: '/vault',    icon: BookOpen,        label: 'Vault',     kbd: '3' },
-  { to: '/impact',   icon: TrendingUp,      label: 'Impact',    kbd: '4' },
-  { to: '/calendar', icon: CalendarDays,    label: 'Calendar',  kbd: '5' },
+  { to: '/ai',       icon: Bot,             label: 'AI Vault',  kbd: '4' },
+  { to: '/impact',   icon: TrendingUp,      label: 'Impact',    kbd: '5' },
+  { to: '/calendar', icon: CalendarDays,    label: 'Calendar',  kbd: '6' },
 ];
 
 export function Rail() {

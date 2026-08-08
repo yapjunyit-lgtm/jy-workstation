@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "bridge": "node server/vault-bridge.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "oxlint",

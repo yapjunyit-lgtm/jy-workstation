@@ -7,6 +7,7 @@ import { SetupScreen } from './components/auth/SetupScreen';
 import { DashboardPage } from './pages/DashboardPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { VaultPage } from './pages/VaultPage';
+import { AIControlPage } from './pages/AIControlPage';
 import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -71,6 +72,7 @@ function AppContent() {
           <Route index element={<DashboardPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="vault" element={<VaultPage />} />
+          <Route path="ai" element={<AIControlPage />} />
           <Route path="impact" element={<ImpactPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
