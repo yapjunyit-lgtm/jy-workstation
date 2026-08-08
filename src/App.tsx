@@ -12,6 +12,7 @@ import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { isFirebaseConfigured } from './lib/firebase';
+import { ErrorBoundary, installGlobalErrorReporter } from './components/layout/ErrorBoundary';
 import { pushAllToCloud, pullAllFromCloud, attachAutoPush, startRealtimeSync } from './lib/cloud-sync';
 
 function AppContent() {
@@ -89,5 +90,12 @@ function AppContent() {
 }
 
 export default function App() {
-  return <AppContent />;
+  useEffect(() => {
+    installGlobalErrorReporter();
+  }, []);
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 }
