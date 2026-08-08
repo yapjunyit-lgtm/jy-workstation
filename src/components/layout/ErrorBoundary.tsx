@@ -74,9 +74,19 @@ export function installGlobalErrorReporter(): void {
     }
   };
 
-  window.addEventListener('error', (e) => show(e.message || 'Uncaught error'));
+  const KNOWN_BENIGN = [
+    'Database is closing/hidden', // Firebase Auth closes IDB when tab is hidden
+  ];
+  const isBenign = (msg: string) => KNOWN_BENIGN.some((k) => msg.includes(k));
+
+  window.addEventListener('error', (e) => {
+    if (e.message && isBenign(e.message)) return;
+    show(e.message || 'Uncaught error');
+  });
   window.addEventListener('unhandledrejection', (e) => {
     const r = e.reason as { message?: string } | undefined;
-    show(r?.message ? `Promise: ${r.message}` : 'Unhandled promise rejection');
+    const msg = r?.message ? `Promise: ${r.message}` : 'Unhandled promise rejection';
+    if (isBenign(msg)) return;
+    show(msg);
   });
 }

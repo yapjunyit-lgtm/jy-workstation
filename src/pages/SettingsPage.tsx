@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
 import { useGCalStore } from '../stores/useGCalStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
-import { isFirebaseConfigured, configureFirebase, getFirebaseConfig, clearFirebaseConfig } from '../lib/firebase';
+import { isFirebaseConfigured, configureFirebase, getFirebaseConfig, clearFirebaseConfig, ensureSignedIn } from '../lib/firebase';
 import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
 import type { FirebaseConfig } from '../lib/firebase';
 
@@ -241,6 +241,8 @@ function CloudTab() {
       return;
     }
     configureFirebase(config);
+    // Sign in (anonymous fallback) — explicit user action on a visible tab
+    ensureSignedIn().catch(() => {});
     setStatus('Connected!');
     getCloudStats().then(setStats);
   };

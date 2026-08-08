@@ -11,7 +11,7 @@ import { AIControlPage } from './pages/AIControlPage';
 import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { isFirebaseConfigured } from './lib/firebase';
+import { isFirebaseConfigured, onFirebaseAuthChange } from './lib/firebase';
 import { ErrorBoundary, installGlobalErrorReporter } from './components/layout/ErrorBoundary';
 import { pushAllToCloud, pullAllFromCloud, attachAutoPush, startRealtimeSync } from './lib/cloud-sync';
 
@@ -22,16 +22,22 @@ function AppContent() {
   useEffect(() => {
     checkAuth().then(() => {
       setInitialized(true);
-      // Connect cloud sync once the local workspace is unlocked
-      if (isFirebaseConfigured()) {
-        attachAutoPush();
-        startRealtimeSync().catch(() => {});
-        // Push local first so a fresh device uploads its data,
-        // then pull so this device gets everything from the cloud.
-        pushAllToCloud()
-          .then(() => pullAllFromCloud())
-          .catch(() => {});
-      }
+      // Wire change hooks once (they no-op until signed in + visible)
+      if (isFirebaseConfigured()) attachAutoPush();
+
+      // Only sync when a cloud account is already signed in — never
+      // auto-sign-in from a background timer (Firebase Auth closes its
+      // IndexedDB when the tab is hidden, producing rejections).
+      let started = false;
+      onFirebaseAuthChange((user) => {
+        if (user && !started) {
+          started = true;
+          startRealtimeSync().catch(() => {});
+          pushAllToCloud()
+            .then(() => pullAllFromCloud())
+            .catch(() => {});
+        }
+      });
     });
   }, []);
 

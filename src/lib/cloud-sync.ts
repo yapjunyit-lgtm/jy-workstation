@@ -18,6 +18,10 @@ import {
   query, limit, type Unsubscribe,
 } from 'firebase/firestore';
 
+function isDocumentVisible(): boolean {
+  return typeof document === 'undefined' || document.visibilityState !== 'hidden';
+}
+
 export const SYNC_TABLES = [
   'priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
   'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks',
@@ -39,7 +43,9 @@ function userPath(table: string): string {
 export async function pushAllToCloud(): Promise<CountMap> {
   const results: CountMap = {};
   if (!isFirebaseConfigured()) return results;
-  await ensureSignedIn();
+  if (!isDocumentVisible()) return results; // skip while tab is hidden
+  const auth = getFirebaseAuth();
+  if (!auth.currentUser) return results;     // only sync when signed in
   const firestore = getFirestoreDB();
 
   for (const table of SYNC_TABLES) {
@@ -63,7 +69,9 @@ export async function pushAllToCloud(): Promise<CountMap> {
 export async function pullAllFromCloud(): Promise<CountMap> {
   const results: CountMap = {};
   if (!isFirebaseConfigured()) return results;
-  await ensureSignedIn();
+  if (!isDocumentVisible()) return results;
+  const auth = getFirebaseAuth();
+  if (!auth.currentUser) return results;
   const firestore = getFirestoreDB();
 
   for (const table of SYNC_TABLES) {
@@ -104,8 +112,9 @@ export async function getCloudStats(): Promise<{ local: number; remote: number }
     try { local += await db.table(table).count(); } catch { /* ignore */ }
   }
 
-  try {
-    await ensureSignedIn();
+  if (!isDocumentVisible()) return { local, remote };
+  const auth = getFirebaseAuth();
+  if (auth.currentUser) {
     const firestore = getFirestoreDB();
     for (const table of SYNC_TABLES) {
       try {
@@ -124,7 +133,7 @@ let unsubscribers: Unsubscribe[] = [];
 
 export async function startRealtimeSync(): Promise<void> {
   if (!isFirebaseConfigured()) return;
-  await ensureSignedIn().catch(() => {});
+  if (!isDocumentVisible()) return;
   const auth = getFirebaseAuth();
   if (!auth.currentUser) return;
 
@@ -162,6 +171,7 @@ const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function scheduleTablePush(table: string): void {
   if (!isFirebaseConfigured()) return;
+  if (!isDocumentVisible()) return;
   const auth = getFirebaseAuth();
   if (!auth.currentUser) return;
 
@@ -175,6 +185,7 @@ function scheduleTablePush(table: string): void {
 
 function tombstone(table: string, id: string): void {
   if (!isFirebaseConfigured()) return;
+  if (!isDocumentVisible()) return;
   const auth = getFirebaseAuth();
   if (!auth.currentUser) return;
   const firestore = getFirestoreDB();
