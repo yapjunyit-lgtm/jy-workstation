@@ -3,7 +3,10 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
 import { useGCalStore } from '../stores/useGCalStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
-import { isFirebaseConfigured, configureFirebase, getFirebaseConfig, clearFirebaseConfig, ensureSignedIn } from '../lib/firebase';
+import {
+  isFirebaseConfigured, configureFirebase, getFirebaseConfig, clearFirebaseConfig,
+  ensureSignedIn, firebaseSignIn, firebaseSignUp, firebaseSignOut, onFirebaseAuthChange,
+} from '../lib/firebase';
 import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
 import type { FirebaseConfig } from '../lib/firebase';
 
@@ -228,23 +231,53 @@ function CloudTab() {
   const [status, setStatus] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [stats, setStats] = useState<{ local: number; remote: number } | null>(null);
+  const [user, setUser] = useState<{ email: string | null; isAnonymous: boolean } | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const connected = isFirebaseConfigured();
+
+  // Track the signed-in Firebase account
+  useEffect(() => {
+    if (!connected) return;
+    const unsub = onFirebaseAuthChange((u) => {
+      setUser(u ? { email: u.email, isAnonymous: u.isAnonymous } : null);
+      if (u) getCloudStats().then(setStats);
+    });
+    return unsub;
+  }, [connected]);
 
   useEffect(() => {
     if (connected) getCloudStats().then(setStats);
   }, []);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!config.apiKey || !config.projectId) {
       setStatus('API Key and Project ID are required');
       return;
     }
     configureFirebase(config);
-    // Sign in (anonymous fallback) — explicit user action on a visible tab
-    ensureSignedIn().catch(() => {});
     setStatus('Connected!');
+    await ensureSignedIn().catch(() => {});
     getCloudStats().then(setStats);
+  };
+
+  const handleSignIn = async () => {
+    if (!email || !password) { setStatus('Email and password required'); return; }
+    const ok = await firebaseSignIn(email.trim(), password);
+    setStatus(ok ? 'Signed in!' : 'Sign in failed');
+  };
+
+  const handleSignUp = async () => {
+    if (!email || password.length < 8) { setStatus('Email + password (min 8 chars) required'); return; }
+    const ok = await firebaseSignUp(email.trim(), password);
+    setStatus(ok ? 'Account created — same account on every browser/device will sync' : 'Sign up failed');
+  };
+
+  const handleSignOut = async () => {
+    await firebaseSignOut().catch(() => {});
+    setUser(null);
+    setStatus('Signed out');
   };
 
   const handlePush = async () => {
@@ -279,6 +312,7 @@ function CloudTab() {
       clearFirebaseConfig();
       setStatus('Disconnected');
       setStats(null);
+      setUser(null);
     }
   };
 
@@ -289,6 +323,42 @@ function CloudTab() {
       {connected ? (
         <div className="p-3 rounded-lg space-y-3" style={{ background: '#E2EDE4' }}>
           <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>✅ Connected to Firebase</p>
+
+          {user && (
+            <div className="p-2 rounded-lg" style={{ background: 'var(--bg-surface)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                👤 {user.email || `Anonymous (${user.isAnonymous ? 'per-browser' : 'account'})`}
+              </p>
+              {user.isAnonymous && (
+                <p className="text-[10px] mt-1" style={{ color: 'var(--warning)' }}>
+                  ⚠ Anonymous accounts are <strong>per-browser</strong> — use the same email account on every browser/device to sync together.
+                </p>
+              )}
+            </div>
+          )}
+
+          {!user && (
+            <div className="p-2 rounded-lg" style={{ background: 'var(--bg-surface)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Not signed in — sync is paused.</p>
+            </div>
+          )}
+
+          {/* Email/password — the reliable cross-browser option */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+              🔑 Account (use the SAME email on every browser/device)
+            </p>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" className="input-sakura text-sm" />
+            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (min 8 chars)" type="password" className="input-sakura text-sm" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={handleSignIn} className="btn-sakura btn-primary btn-sm">Sign In</button>
+              <button onClick={handleSignUp} className="btn-sakura btn-secondary btn-sm">Create Account</button>
+              {user && (
+                <button onClick={handleSignOut} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>Sign Out</button>
+              )}
+            </div>
+          </div>
+
           {stats && (
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               📊 {stats.local} local records · {stats.remote} cloud records
