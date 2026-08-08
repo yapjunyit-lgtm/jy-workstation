@@ -27,12 +27,6 @@ export const SYNC_TABLES = [
 export type SyncTableName = (typeof SYNC_TABLES)[number];
 type CountMap = Record<string, number>;
 
-interface DexieChangeRecord {
-  table: string;
-  type: number; // 1=created, 2=updated, 3=deleted
-  key?: unknown;
-  oldObj?: { id?: string };
-}
 
 function userPath(table: string): string {
   const auth = getFirebaseAuth();
@@ -166,46 +160,56 @@ export function stopRealtimeSync(): void {
 let hooksAttached = false;
 const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+function scheduleTablePush(table: string): void {
+  if (!isFirebaseConfigured()) return;
+  const auth = getFirebaseAuth();
+  if (!auth.currentUser) return;
+
+  const timer = pushTimers.get(table);
+  if (timer) clearTimeout(timer);
+  pushTimers.set(table, setTimeout(async () => {
+    pushTimers.delete(table);
+    try { await pushAllToCloud(); } catch { /* retry on next change */ }
+  }, 800));
+}
+
+function tombstone(table: string, id: string): void {
+  if (!isFirebaseConfigured()) return;
+  const auth = getFirebaseAuth();
+  if (!auth.currentUser) return;
+  const firestore = getFirestoreDB();
+  const col = collection(firestore, userPath(table));
+  setDoc(doc(col, id), { deleted: true, updatedAt: Date.now() }).catch(() => {});
+}
+
 export function attachAutoPush(): void {
   if (hooksAttached) return;
   hooksAttached = true;
 
-  // Dexie's "changes" event exists at runtime; typings for it are
-  // incomplete in some versions, so cast the event set.
-  const dbEvents = db.on as unknown as {
-    (event: 'changes', subscriber: (changes: DexieChangeRecord[]) => void): void;
-  };
-
-  dbEvents('changes', (changes) => {
-    if (!isFirebaseConfigured()) return;
-    const auth = getFirebaseAuth();
-    if (!auth.currentUser) return;
-
-    const tables = new Set<string>();
-    changes.forEach((change) => {
-      if (!SYNC_TABLES.includes(change.table as SyncTableName)) return;
-      tables.add(change.table);
-
-      // Tombstone deletes so they reach other devices
-      if (change.type === 3 && change.oldObj?.id) {
-        const firestore = getFirestoreDB();
-        const col = collection(firestore, userPath(change.table));
-        setDoc(doc(col, change.oldObj.id as string), {
-          deleted: true,
-          updatedAt: Date.now(),
-        }).catch(() => {});
-      }
+  // Dexie 4 supports table hooks (creating/updating/deleting); the old
+  // db.on('changes') event no longer exists in v4 and throws at runtime.
+  for (const table of SYNC_TABLES) {
+    const t = db.table(table) as never as {
+      hook(name: string, fn: (...args: any[]) => void): void;
+    };
+    t.hook('creating', (...args: any[]) => {
+      const obj = args[1] as { id?: string } | undefined;
+      scheduleTablePush(table);
+      void obj;
     });
-
-    tables.forEach((table) => {
-      const timer = pushTimers.get(table);
-      if (timer) clearTimeout(timer);
-      pushTimers.set(table, setTimeout(async () => {
-        pushTimers.delete(table);
-        try { await pushAllToCloud(); } catch { /* retry next change */ }
-      }, 800));
+    t.hook('updating', (...args: any[]) => {
+      const obj = args[2] as { id?: string } | undefined;
+      scheduleTablePush(table);
+      void obj;
     });
-  });
+    t.hook('deleting', (...args: any[]) => {
+      const primKey = args[0];
+      const obj = args[1] as { id?: string } | undefined;
+      const id = (obj?.id ?? primKey) as string;
+      scheduleTablePush(table);
+      tombstone(table, id);
+    });
+  }
 }
 
 // ── Full one-shot sync (used by App startup) ──────────────────────────
