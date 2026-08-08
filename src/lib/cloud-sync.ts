@@ -11,7 +11,7 @@
  */
 import { db } from './db';
 import {
-  getFirestoreDB, getFirebaseAuth, isFirebaseConfigured, ensureSignedIn,
+  getFirestoreDB, getFirebaseAuth, isFirebaseConfigured,
 } from './firebase';
 import {
   collection, doc, getDocs, setDoc, onSnapshot,
@@ -123,7 +123,7 @@ export async function getCloudStats(): Promise<{ local: number; remote: number }
         remote += snap.size;
       } catch { /* ignore */ }
     }
-  } catch { /* not signed in */ }
+  }
 
   return { local, remote };
 }
