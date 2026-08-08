@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Skip deploy when the token secret isn't configured yet
+    if: ${{ secrets.FIREBASE_TOKEN != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,4 +32,4 @@ jobs:
           args: deploy --only hosting,firestore:rules
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          PROJECT_ID: jy-workstation
