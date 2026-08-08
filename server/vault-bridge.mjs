@@ -54,6 +54,7 @@ function json(res, code, body) {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Private-Network': 'true',
   });
   res.end(data);
 }
@@ -270,6 +271,7 @@ const server = createServer(async (req, res) => {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Private-Network': 'true',
     });
     res.end();
     return;
@@ -315,6 +317,7 @@ const server = createServer(async (req, res) => {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Private-Network': 'true',
       });
       sse(res, { type: 'start', action, label: def.label, startedAt: new Date().toISOString() });
 
