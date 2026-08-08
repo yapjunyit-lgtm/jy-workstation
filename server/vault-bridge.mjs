@@ -56,7 +56,8 @@ function mimeFor(pathname) {
 }
 
 async function serveStatic(req, res, pathname) {
-  let rel = pathname === '/' ? 'index.html' : pathname;
+  let rel = pathname;
+  if (rel === '/' || rel === '') rel = 'index.html';
   if (rel.startsWith(APP_PREFIX)) rel = rel.slice(APP_PREFIX.length) || 'index.html';
   if (!rel) rel = 'index.html';
 
@@ -326,14 +327,12 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Serve the built web app (same origin as the API)
+  // Serve the built web app (same origin as the API).
+  // Served at BOTH "/" and "/jy-workstation/" so a stale service worker
+  // scoped to /jy-workstation/ can be bypassed by opening "/" instead.
   if (req.method === 'GET' && url.pathname.startsWith('/')) {
     if (url.pathname.startsWith('/api/')) {
       // API routes handled below
-    } else if (url.pathname === '/') {
-      res.writeHead(302, { Location: APP_PREFIX });
-      res.end();
-      return;
     } else {
       await serveStatic(req, res, url.pathname);
       return;
