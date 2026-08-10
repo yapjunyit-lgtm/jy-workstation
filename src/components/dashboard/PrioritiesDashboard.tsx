@@ -36,7 +36,9 @@ export function PrioritiesDashboard() {
     hydrateKanban();
   }, []);
 
-  const sortedTasks = [...tasks].sort((a, b) => a.priority - b.priority || (a.targetDate || '').localeCompare(b.targetDate || ''));
+  const sortedTasks = tasks
+    .filter((t) => t.column !== 'completed')
+    .sort((a, b) => a.priority - b.priority || (a.targetDate || '').localeCompare(b.targetDate || ''));
   const today = todayISO();
 
   const handleAddPriority = () => {
