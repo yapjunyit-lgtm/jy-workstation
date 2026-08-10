@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
 import { useGCalStore } from '../stores/useGCalStore';
-import { useProjectStore } from '../stores/useProjectStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
 import { isBridgeReachable } from '../lib/cloud-sync';
 import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
 
-type SettingsTab = 'project' | 'auth' | 'sync' | 'calendar' | 'cloud' | 'backup';
+type SettingsTab = 'auth' | 'sync' | 'calendar' | 'cloud' | 'backup';
 
 export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('auth');
@@ -18,7 +17,6 @@ export function SettingsPage() {
 
       <div className="settings-tabs flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
         {([
-          { id: 'project' as const, label: 'Project' },
           { id: 'auth' as const, label: 'Auth' },
           { id: 'sync' as const, label: 'Obsidian Sync' },
           { id: 'calendar' as const, label: 'Calendar' },
@@ -40,63 +38,11 @@ export function SettingsPage() {
         ))}
       </div>
 
-      {tab === 'project' && <ProjectTab />}
       {tab === 'auth' && <AuthTab />}
       {tab === 'sync' && <SyncTab />}
       {tab === 'calendar' && <CalendarTab />}
       {tab === 'cloud' && <CloudTab />}
       {tab === 'backup' && <BackupTab />}
-    </div>
-  );
-}
-
-// ── Project Tab ──
-function ProjectTab() {
-  const { hydrate, save } = useProjectStore();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [author, setAuthor] = useState('');
-  const [status, setStatus] = useState('');
-
-  useEffect(() => {
-    hydrate(true).then(() => {
-      const st = useProjectStore.getState().info;
-      setName(st.name);
-      setDescription(st.description);
-      setAuthor(st.author);
-    });
-  }, []);
-
-  const handleSave = async () => {
-    await save({ name: name.trim(), description: description.trim(), author: author.trim() });
-    setStatus('Saved — shown centered on the dashboard');
-    setTimeout(() => setStatus(''), 2500);
-  };
-
-  return (
-    <div className="card-static max-w-lg space-y-4">
-      <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Project Identity</h3>
-      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-        Displayed centered in Times New Roman at the top of the dashboard.
-      </p>
-      <div className="space-y-3">
-        <div>
-          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-tertiary)' }}>Project Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. JY Workstation" className="input-sakura text-sm" />
-        </div>
-        <div>
-          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-tertiary)' }}>Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this project about?" className="input-sakura text-sm" rows={3} />
-        </div>
-        <div>
-          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-tertiary)' }}>Author</label>
-          <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="e.g. Jun Yap" className="input-sakura text-sm" />
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button onClick={handleSave} className="btn-sakura btn-primary btn-sm">Save</button>
-        {status && <span className="text-xs" style={{ color: 'var(--success)' }}>{status}</span>}
-      </div>
     </div>
   );
 }

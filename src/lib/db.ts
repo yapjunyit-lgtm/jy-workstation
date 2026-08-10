@@ -3,7 +3,7 @@ import type { Table } from 'dexie';
 import type {
   AuthRecord, Priority, KanbanTask, Blocker, Snippet,
   DataSource, ChecklistItem, STAREntry, SOPDocument,
-  TimeBlock, ScratchNote, SyncConfig, AppSettings, QuickNote, ProjectInfo,
+  TimeBlock, ScratchNote, SyncConfig, AppSettings, QuickNote,
 } from './types';
 
 export class WorkstationDB extends Dexie {
@@ -19,7 +19,6 @@ export class WorkstationDB extends Dexie {
   timeBlocks!: Table<TimeBlock, string>;
   scratchNotes!: Table<ScratchNote, string>;
   quickNotes!: Table<QuickNote, string>;
-  projectInfo!: Table<ProjectInfo, string>;
   syncConfig!: Table<SyncConfig, string>;
   appSettings!: Table<AppSettings, string>;
 
@@ -44,10 +43,6 @@ export class WorkstationDB extends Dexie {
 
     this.version(2).stores({
       quickNotes:      'id, date, createdAt',
-    });
-
-    this.version(3).stores({
-      projectInfo:     'id',
     });
   }
 }

@@ -3,14 +3,10 @@ import { PomodoroTimer } from '../components/dashboard/PomodoroTimer';
 import { BlockerTracker } from '../components/dashboard/BlockerTracker';
 import { RichEditor } from '../components/scratchpad/RichEditor';
 import { QuickNotesPanel } from '../components/dashboard/QuickNotesPanel';
-import { ProjectHeader } from '../components/dashboard/ProjectHeader';
 
 export function DashboardPage() {
   return (
     <div className="page-enter space-y-6">
-      {/* Project identity (centered, Times New Roman) */}
-      <ProjectHeader />
-
       {/* Big date header */}
       <div className="flex items-baseline justify-between">
         <div>
