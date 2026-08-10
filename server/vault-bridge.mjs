@@ -12,7 +12,8 @@
  */
 
 import { createServer } from 'node:http';
-import { initDB, getAll, upsertAll, getChanges, getStats } from './db.mjs';
+import { initDB, getAll, upsertAll, getChanges, getStats, summarizeWorkstation } from './db.mjs';
+import { randomUUID } from 'node:crypto';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, writeFile, mkdir, appendFile, stat } from 'node:fs/promises';
@@ -313,6 +314,197 @@ async function runCreateToday(res) {
   sse(res, { type: 'done', ok: true, commit: hash, lastMessage: `Created 10-Daily/${date}.md` });
 }
 
+// ── AI assistant ─────────────────────────────────────────────────────────
+function parseActions(lastMessage) {
+  if (!lastMessage) return [];
+  // Prefer a ```json fenced block
+  const fence = lastMessage.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fence ? fence[1] : lastMessage;
+  try {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start === -1 || end === -1) return [];
+    const parsed = JSON.parse(candidate.slice(start, end + 1));
+    if (Array.isArray(parsed.actions)) return parsed.actions;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeTime(v) {
+  const m = String(v).match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]) / 60;
+  if (h > 23) return null;
+  return h + min;
+}
+
+function executeAssistantActions(actions) {
+  const results = [];
+  for (const a of actions) {
+    const op = a?.op;
+    const d = a?.data || {};
+    try {
+      if (op === 'create_task') {
+        if (!d.title) throw new Error('title required');
+        const now = Date.now();
+        const rec = {
+          id: randomUUID(),
+          title: d.title,
+          description: d.description || '',
+          column: d.column || 'backlog',
+          category: d.category || 'ai-tooling',
+          priority: d.priority ?? 3,
+          subtasks: [],
+          targetDate: d.targetDate || null,
+          securityReviewPassed: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        upsertAll('kanbanTasks', [rec]);
+        results.push({ op, ok: true, id: rec.id, title: rec.title, column: rec.column });
+      } else if (op === 'update_task') {
+        if (!d.id) throw new Error('id required');
+        const existing = getAll('kanbanTasks').find((t) => t.id === d.id);
+        if (!existing) throw new Error(`task ${d.id} not found`);
+        const patch = {};
+        for (const k of ['title', 'description', 'column', 'category', 'priority', 'targetDate', 'securityReviewPassed']) {
+          if (d[k] !== undefined && d[k] !== null) patch[k] = d[k];
+        }
+        const rec = { ...existing, ...patch, updatedAt: Date.now() };
+        upsertAll('kanbanTasks', [rec]);
+        results.push({ op, ok: true, id: rec.id, title: rec.title });
+      } else if (op === 'create_event') {
+        if (!d.title || !d.date) throw new Error('title and date required');
+        const startHour = normalizeTime(d.start) ?? 9;
+        const endHour = normalizeTime(d.end) ?? startHour + 1;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) throw new Error('date must be YYYY-MM-DD');
+        const colors = {
+          'work-shift': '#C9A96E', commute: '#D5CFC6', study: '#8A9FB8',
+          'sat-shift': '#C4887C', custom: '#8B9D83',
+        };
+        const rec = {
+          id: randomUUID(),
+          date: d.date,
+          startHour,
+          endHour: Math.max(endHour, startHour + 0.5),
+          type: d.type || 'custom',
+          label: d.title,
+          color: colors[d.type] || '#8B9D83',
+        };
+        upsertAll('timeBlocks', [rec]);
+        results.push({ op, ok: true, id: rec.id, title: rec.label, date: rec.date, start: rec.startHour, end: rec.endHour });
+      } else if (op === 'create_priority') {
+        if (!d.title) throw new Error('title required');
+        const rec = {
+          id: randomUUID(),
+          date: todayLocal(),
+          rank: d.rank === 1 || d.rank === 2 || d.rank === 3 ? d.rank : 3,
+          title: d.title,
+          completed: false,
+          createdAt: Date.now(),
+        };
+        upsertAll('priorities', [rec]);
+        results.push({ op, ok: true, id: rec.id, title: rec.title, rank: rec.rank });
+      } else if (op === 'create_blocker') {
+        if (!d.title) throw new Error('title required');
+        const rec = {
+          id: randomUUID(),
+          title: d.title,
+          description: d.description || '',
+          status: 'open',
+          createdAt: Date.now(),
+        };
+        upsertAll('blockers', [rec]);
+        results.push({ op, ok: true, id: rec.id, title: rec.title });
+      } else {
+        results.push({ op: op || 'unknown', ok: false, error: 'Unsupported operation' });
+      }
+    } catch (e) {
+      results.push({ op, ok: false, error: e.message });
+    }
+  }
+  return results;
+}
+
+async function runAssistant(res, message) {
+  const summary = summarizeWorkstation();
+  const prompt =
+    `You are the JY Workstation AI assistant. Help the user manage their personal workstation ` +
+    `(kanban tasks, calendar, priorities, blockers, vault snippets, impact log).
+
+` +
+    `CURRENT WORKSTATION DATA (JSON):\n${JSON.stringify(summary)}\n\n` +
+    `If the user wants changes, END your reply with a JSON code block exactly like:\n` +
+    '```json\n{"actions":[{"op":"create_task","data":{...}}]}\n```\n' +
+    `Available ops:\n` +
+    `- create_task: data { title (required), category, priority (1-5), column (backlog|in-progress|testing|completed), targetDate (YYYY-MM-DD), description }\n` +
+    `- update_task: data { id (required, use ids from the data above), title, column, priority, targetDate, description }\n` +
+    `- create_event: data { title (required), date (YYYY-MM-DD), start ("HH:MM"), end ("HH:MM"), type (work-shift|commute|study|sat-shift|custom) }\n` +
+    `- create_priority: data { title (required), rank (1|2|3) }\n` +
+    `- create_blocker: data { title (required), description }\n` +
+    `If no changes are needed, use {"actions":[]}.\n` +
+    `First give a concise, warm, helpful reply to the user — including useful insights about their ` +
+    `data (overdue tasks, week ahead, workload balance) when relevant. Then the JSON block.\n\n` +
+    `User: ${message}`;
+
+  const lastMsgFile = join(tmpdir(), `codex-assistant-${Date.now()}.txt`);
+  const args = [
+    CODEX_CLI, 'exec', '--ephemeral', '-s', 'workspace-write', '-C', VAULT,
+    '-o', lastMsgFile, prompt,
+  ];
+  const child = spawn(NODE_BIN, args, { cwd: VAULT, stdio: ['ignore', 'pipe', 'pipe'] });
+  const started = Date.now();
+
+  child.stdout.on('data', (chunk) => {
+    for (const line of chunk.toString().split('\n')) {
+      const t = line.trim();
+      if (t) sse(res, { type: 'output', line: t });
+    }
+  });
+  child.stderr.on('data', (chunk) => {
+    for (const line of chunk.toString().split('\n')) {
+      const t = line.trim();
+      if (t) sse(res, { type: 'output', stream: 'stderr', line: t });
+    }
+  });
+
+  const code = await new Promise((resolveCode) => {
+    child.on('close', resolveCode);
+    child.on('error', (err) => {
+      sse(res, { type: 'error', message: `Failed to start Codex: ${err.message}` });
+      resolveCode(-1);
+    });
+  });
+
+  let lastMessage = '';
+  for (let attempt = 0; attempt < 3 && !lastMessage; attempt++) {
+    try {
+      lastMessage = (await readFile(lastMsgFile, 'utf8')).trim();
+    } catch {
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+
+  const actions = code === 0 ? parseActions(lastMessage) : [];
+  const results = executeAssistantActions(actions);
+  for (const r of results) sse(res, { type: 'action', ...r });
+
+  await appendLedger({
+    action: 'ai-assistant', prompt: message.slice(0, 300), status: code === 0 ? 'ok' : 'error',
+    exitCode: code, message: `actions: ${results.filter((r) => r.ok).length} executed`,
+  });
+
+  sse(res, {
+    type: 'done', ok: code === 0, exitCode: code,
+    durationMs: Date.now() - started,
+    answer: lastMessage.slice(0, 4000),
+    actions: results,
+  });
+}
+
 // ── HTTP server ──────────────────────────────────────────────────────────
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
@@ -359,6 +551,30 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/vault/ledger') {
       const limit = Math.min(Number(url.searchParams.get('limit') || 20), 100);
       json(res, 200, { entries: await readLedger(limit) });
+      return;
+    }
+
+    // ── AI assistant ──────────────────────────────────────────────
+    if (req.method === 'POST' && url.pathname === '/api/ai/assistant') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      let parsed = {};
+      try { parsed = JSON.parse(body || '{}'); } catch { /* fall through */ }
+      const message = String(parsed.message || '').slice(0, 4000);
+      if (!message) {
+        json(res, 400, { error: 'message required' });
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Private-Network': 'true',
+      });
+      sse(res, { type: 'start', message: message.slice(0, 100) });
+      await runAssistant(res, message);
+      res.end();
       return;
     }
 

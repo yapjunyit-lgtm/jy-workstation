@@ -30,8 +30,19 @@ export interface VaultStatus {
   actions: { id: string; label: string; kind: string }[];
 }
 
+export interface AssistantAction {
+  op: string;
+  ok: boolean;
+  id?: string;
+  title?: string;
+  error?: string;
+  date?: string;
+  start?: number;
+  end?: number;
+}
+
 export interface BridgeEvent {
-  type: 'start' | 'output' | 'done' | 'error';
+  type: 'start' | 'output' | 'done' | 'error' | 'action';
   action?: string;
   label?: string;
   startedAt?: string;
@@ -43,6 +54,16 @@ export interface BridgeEvent {
   durationMs?: number;
   lastMessage?: string;
   message?: string;
+  // AI assistant fields
+  answer?: string;
+  actions?: AssistantAction[];
+  op?: string;
+  id?: string;
+  title?: string;
+  error?: string;
+  date?: string;
+  start?: number;
+  end?: number;
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -109,5 +130,55 @@ export async function runAction(action: string, opts: RunOptions = {}): Promise<
     }
   }
 
+  return final;
+}
+
+export interface AssistantOptions {
+  onEvent?: (event: BridgeEvent) => void;
+}
+
+/**
+ * Send a message to the AI assistant (bridge runs Codex, executes
+ * structured actions against the local SQLite database).
+ */
+export async function runAssistant(
+  message: string,
+  opts: AssistantOptions = {}
+): Promise<BridgeEvent> {
+  const res = await fetch(`${BRIDGE_URL}/api/ai/assistant`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `Bridge error ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let final: BridgeEvent = { type: 'done', ok: false };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const chunks = buffer.split('\n\n');
+    buffer = chunks.pop() ?? '';
+
+    for (const chunk of chunks) {
+      const dataLine = chunk.split('\n').find((l) => l.startsWith('data: '));
+      if (!dataLine) continue;
+      try {
+        const event = JSON.parse(dataLine.slice(6)) as BridgeEvent;
+        opts.onEvent?.(event);
+        if (event.type === 'done' || event.type === 'error') final = event;
+      } catch {
+        /* skip malformed event */
+      }
+    }
+  }
   return final;
 }

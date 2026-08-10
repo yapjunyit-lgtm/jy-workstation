@@ -97,3 +97,57 @@ export function getStats() {
   for (const row of byRes.length ? byRes[0].values : []) map[row[0]] = row[1];
   return { total, byCollection: map };
 }
+
+// ── Workstation insights summary (fed to the AI assistant) ─────────────
+export function summarizeWorkstation() {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const soon = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+
+  const kanban = getAll('kanbanTasks');
+  const byColumn = {};
+  const byCategory = {};
+  const overdue = [];
+  for (const t of kanban) {
+    byColumn[t.column] = (byColumn[t.column] || 0) + 1;
+    byCategory[t.category] = (byCategory[t.category] || 0) + 1;
+    if (t.targetDate && t.targetDate < todayStr && t.column !== 'completed') {
+      overdue.push({ id: t.id, title: t.title, due: t.targetDate, column: t.column });
+    }
+  }
+
+  const blocks = getAll('timeBlocks');
+  const upcoming = blocks
+    .filter((b) => b.date >= todayStr && b.date <= soon)
+    .sort((a, b) => (a.date + a.startHour).localeCompare(b.date + b.startHour))
+    .slice(0, 15)
+    .map((b) => ({ id: b.id, title: b.label, date: b.date, start: b.startHour, end: b.endHour, type: b.type }));
+
+  const priorities = getAll('priorities')
+    .filter((p) => p.date === todayStr)
+    .map((p) => ({ id: p.id, rank: p.rank, title: p.title, done: p.completed }));
+
+  const blockers = getAll('blockers')
+    .filter((b) => b.status !== 'resolved')
+    .map((b) => ({ id: b.id, title: b.title, status: b.status }));
+
+  const stars = getAll('starEntries').slice(0, 3).map((s) => ({
+    week: s.weekStart, result: s.result, metrics: s.quantitativeMetrics,
+  }));
+
+  const counts = {};
+  for (const t of ['priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
+    'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks', 'scratchNotes']) {
+    counts[t] = getAll(t).length;
+  }
+
+  return {
+    today: todayStr,
+    counts,
+    kanban: { total: kanban.length, byColumn, byCategory, overdue },
+    upcomingEvents: upcoming,
+    todayPriorities: priorities,
+    openBlockers: blockers,
+    recentStars: stars,
+  };
+}

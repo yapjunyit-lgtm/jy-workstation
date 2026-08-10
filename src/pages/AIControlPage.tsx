@@ -7,6 +7,7 @@ import {
   BRIDGE_URL, getStatus, runAction, type BridgeEvent, type VaultStatus, type LedgerEntry,
 } from '../lib/bridge';
 import { ObsidianURI } from '../lib/obsidian-uri';
+import { AIAssistantPanel } from '../components/ai/AIAssistantPanel';
 
 const VAULT_NAME = 'JY_Vault';
 
@@ -18,6 +19,7 @@ interface ConsoleLine {
 export function AIControlPage() {
   const [status, setStatus] = useState<VaultStatus | null>(null);
   const [bridgeOk, setBridgeOk] = useState<boolean | null>(null);
+  const [tab, setTab] = useState<'assistant' | 'vault'>('assistant');
   const [running, setRunning] = useState<string | null>(null);
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [done, setDone] = useState<BridgeEvent | null>(null);
@@ -98,9 +100,9 @@ export function AIControlPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>🤖 AI Vault Control</h2>
+          <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>🤖 AI Assistant</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Run your Obsidian automations from here — everything is logged and git-committed.
+            Insights about your workstation + make changes — powered by Codex via your local bridge.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -122,6 +124,31 @@ export function AIControlPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
+        {([
+          { id: 'assistant' as const, label: '💬 Assistant' },
+          { id: 'vault' as const, label: '🗂️ Vault Control' },
+        ]).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className="px-4 py-2 text-sm transition-soft border-b-2 -mb-px"
+            style={{
+              color: tab === t.id ? 'var(--accent)' : 'var(--text-secondary)',
+              borderColor: tab === t.id ? 'var(--accent)' : 'transparent',
+              fontWeight: tab === t.id ? 500 : 400,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'assistant' && <AIAssistantPanel />}
+
+      {tab === 'vault' && (
+        <>
       {/* Status cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatusCard
@@ -348,6 +375,8 @@ export function AIControlPage() {
           <ExternalLink size={14} /> Open Vault
         </a>
       </div>
+        </>
+      )}
     </div>
   );
 }
