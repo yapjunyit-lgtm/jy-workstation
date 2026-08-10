@@ -16,7 +16,7 @@ import {
 } from './firebase';
 import {
   collection, doc, getDocs, setDoc, onSnapshot,
-  query, limit, type Unsubscribe,
+  query, limit, getCountFromServer, type Unsubscribe,
 } from 'firebase/firestore';
 
 function isDocumentVisible(): boolean {
@@ -41,24 +41,45 @@ function userPath(table: string): string {
 }
 
 // ── Push: local → cloud ───────────────────────────────────────────────
+// Per-session cache of the last JSON pushed per record, so unchanged
+// documents are never rewritten (saves Firestore write quota).
+const lastPushedJson = new Map<string, Map<string, string>>();
+
+async function pushTable(table: SyncTableName): Promise<number> {
+  if (!isFirebaseConfigured()) return 0;
+  if (!isDocumentVisible()) return 0;
+  const auth = getFirebaseAuth();
+  if (!auth.currentUser) return 0;
+
+  const firestore = getFirestoreDB();
+  const records = await db.table(table).toArray() as Record<string, unknown>[];
+  const col = collection(firestore, userPath(table));
+
+  let cache = lastPushedJson.get(table);
+  if (!cache) {
+    cache = new Map();
+    lastPushedJson.set(table, cache);
+  }
+
+  let pushed = 0;
+  for (const rec of records) {
+    const id = rec.id as string;
+    const { id: _id, ...rest } = rec;
+    const payload = { ...rest, updatedAt: rec.updatedAt ?? Date.now() };
+    const json = JSON.stringify(payload);
+    if (cache.get(id) === json) continue; // unchanged since last push
+    await setDoc(doc(col, id), payload);
+    cache.set(id, json);
+    pushed++;
+  }
+  return pushed;
+}
+
 export async function pushAllToCloud(): Promise<CountMap> {
   const results: CountMap = {};
-  if (!isFirebaseConfigured()) return results;
-  if (!isDocumentVisible()) return results; // skip while tab is hidden
-  const auth = getFirebaseAuth();
-  if (!auth.currentUser) return results;     // only sync when signed in
-  const firestore = getFirestoreDB();
-
   for (const table of SYNC_TABLES) {
     try {
-      const records = await db.table(table).toArray() as Record<string, unknown>[];
-      const col = collection(firestore, userPath(table));
-      for (const rec of records) {
-        const id = rec.id as string;
-        const { id: _id, ...rest } = rec;
-        await setDoc(doc(col, id), { ...rest, updatedAt: rec.updatedAt ?? Date.now() });
-      }
-      results[table] = records.length;
+      results[table] = await pushTable(table);
     } catch {
       results[table] = 0; // keep going, report per-table
     }
@@ -121,8 +142,8 @@ export async function getCloudStats(): Promise<{ local: number; remote: number }
     for (const table of SYNC_TABLES) {
       try {
         const col = collection(firestore, userPath(table));
-        const snap = await getDocs(query(col, limit(5000)));
-        remote += snap.size;
+        const snap = await getCountFromServer(query(col));
+        remote += snap.data().count;
       } catch { /* ignore */ }
     }
   }
@@ -156,7 +177,15 @@ export async function startRealtimeSync(): Promise<void> {
         ops.push(
           localTable.get(change.doc.id).then((existing) => {
             const ex = existing as Record<string, unknown> | undefined;
-            if (ex && (ex.updatedAt ?? 0) > (data.updatedAt ?? 0)) return; // local newer
+            if (!ex) return localTable.put({ ...data, id: change.doc.id } as never);
+            if ((ex.updatedAt ?? 0) > (data.updatedAt ?? 0)) return; // local newer
+            // Echo guard: identical data (e.g. our own pushed write coming
+            // back) must NOT rewrite local — prevents push/pull loops.
+            if ((ex.updatedAt ?? 0) === (data.updatedAt ?? 0)) {
+              const exJson = JSON.stringify(ex);
+              const inJson = JSON.stringify({ ...data, id: change.doc.id });
+              if (exJson === inJson) return;
+            }
             return localTable.put({ ...data, id: change.doc.id } as never);
           }).catch(() => {})
         );
@@ -190,7 +219,7 @@ function scheduleTablePush(table: string): void {
   if (timer) clearTimeout(timer);
   pushTimers.set(table, setTimeout(async () => {
     pushTimers.delete(table);
-    try { await pushAllToCloud(); } catch { /* retry on next change */ }
+    try { await pushTable(table as SyncTableName); } catch { /* retry on next change */ }
   }, 800));
 }
 
