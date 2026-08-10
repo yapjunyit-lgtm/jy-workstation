@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
-import { Search, Play, Pause } from 'lucide-react';
+import { Search, Play, Pause, Cloud } from 'lucide-react';
+import { useCloudStatusStore } from '../../stores/useCloudStatusStore';
 import { ShiftIndicator } from '../dashboard/ShiftIndicator';
 import { useTimerStore } from '../../stores/useTimerStore';
 import { formatTimer } from '../../lib/utils';
@@ -17,6 +18,7 @@ export function TopBar() {
   const location = useLocation();
   const [title, subtitle] = PAGE_TITLES[location.pathname] || ['JY Workstation', ''];
   const { mode, isRunning, remainingSeconds, start, pause } = useTimerStore();
+  const cloudEmail = useCloudStatusStore((s) => s.email);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', {
@@ -84,6 +86,20 @@ export function TopBar() {
         >
           ⌘K
         </kbd>
+      </div>
+
+      {/* Cloud sync status */}
+      <div
+        className="flex items-center gap-1.5 rounded-full px-2.5 py-1 border text-xs flex-shrink-0 transition-soft"
+        title={cloudEmail ? `Cloud sync on — ${cloudEmail}` : 'Cloud sync off — sign in at Settings → Cloud Sync'}
+        style={{
+          background: cloudEmail ? '#E2EDE4' : 'var(--bg-surface)',
+          borderColor: cloudEmail ? 'var(--success)' : 'var(--border-color)',
+          color: cloudEmail ? 'var(--success)' : 'var(--text-tertiary)',
+        }}
+      >
+        <Cloud size={12} />
+        <span className="max-w-[140px] truncate">{cloudEmail ? cloudEmail : 'sync off'}</span>
       </div>
 
       {/* Mini timer */}

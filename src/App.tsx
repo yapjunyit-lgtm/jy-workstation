@@ -12,8 +12,9 @@ import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { isFirebaseConfigured, onFirebaseAuthChange } from './lib/firebase';
+import { useCloudStatusStore } from './stores/useCloudStatusStore';
 import { ErrorBoundary, installGlobalErrorReporter } from './components/layout/ErrorBoundary';
-import { pushAllToCloud, pullAllFromCloud, attachAutoPush, startRealtimeSync } from './lib/cloud-sync';
+import { pushAllToCloud, pullAllFromCloud, attachAutoPush, startRealtimeSync, stopRealtimeSync } from './lib/cloud-sync';
 
 function AppContent() {
   const { isLocked, isSetup, isLoading, checkAuth } = useAuthStore();
@@ -28,18 +29,34 @@ function AppContent() {
       // Only sync when a cloud account is already signed in — never
       // auto-sign-in from a background timer (Firebase Auth closes its
       // IndexedDB when the tab is hidden, producing rejections).
-      let started = false;
+      // Re-subscribe on EVERY auth change (sign-in, sign-out, account switch).
+      const setCloudEmail = useCloudStatusStore.getState().setEmail;
       onFirebaseAuthChange((user) => {
-        if (user && !started) {
-          started = true;
+        setCloudEmail(user ? (user.email || 'signed in') : null);
+        if (user) {
           startRealtimeSync().catch(() => {});
           pushAllToCloud()
             .then(() => pullAllFromCloud())
             .catch(() => {});
+        } else {
+          stopRealtimeSync();
         }
       });
     });
   }, []);
+
+  // Restart realtime listeners whenever the tab becomes visible again
+  // (a hidden tab at startup used to skip listener setup entirely).
+  useEffect(() => {
+    if (!initialized || isLocked || !isFirebaseConfigured()) return;
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        startRealtimeSync().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [initialized, isLocked]);
 
   // Safety net: periodic push every 5 minutes if configured
   useEffect(() => {

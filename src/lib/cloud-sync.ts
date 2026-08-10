@@ -135,7 +135,6 @@ let unsubscribers: Unsubscribe[] = [];
 
 export async function startRealtimeSync(): Promise<void> {
   if (!isFirebaseConfigured()) return;
-  if (!isDocumentVisible()) return;
   const auth = getFirebaseAuth();
   if (!auth.currentUser) return;
 
