@@ -11,6 +11,7 @@ import { AIAssistantPanel } from '../components/ai/AIAssistantPanel';
 import { Dots } from '../components/layout/Dots';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PillTabs } from '../components/layout/PillTabs';
+import { formatTimeIntl, formatDateTimeIntl } from '../lib/utils';
 
 const VAULT_NAME = 'JY_Vault';
 
@@ -60,7 +61,7 @@ export function AIControlPage() {
   const handleAction = async (action: string, opts: { project?: string; prompt?: string } = {}) => {
     if (running) return;
     setRunning(action);
-    setLines([{ stream: 'info', text: `▶ ${action} started — ${new Date().toLocaleTimeString()}` }]);
+    setLines([{ stream: 'info', text: `▶ ${action} started — ${formatTimeIntl(Date.now())}` }]);
     setDone(null);
     setError('');
     try {
@@ -217,6 +218,7 @@ export function AIControlPage() {
             value={project}
             onChange={(e) => setProject(e.target.value)}
             disabled={!!running}
+            aria-label="Project name for work log"
           />
           <input
             className="input-sakura"
@@ -224,6 +226,7 @@ export function AIControlPage() {
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
             disabled={!!running}
+            aria-label="Custom prompt for Codex"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && customPrompt.trim() && !running) {
                 handleAction('custom', { prompt: customPrompt.trim() });
@@ -328,7 +331,7 @@ export function AIControlPage() {
                 {ledger.map((entry, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td className="py-2 pr-3 whitespace-nowrap" style={{ color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>
-                      {new Date(entry.ts).toLocaleString()}
+                      {formatDateTimeIntl(new Date(entry.ts).getTime())}
                     </td>
                     <td className="py-2 pr-3">{entry.action}</td>
                     <td className="py-2 pr-3">

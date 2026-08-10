@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
-import { Calendar, Check, Lock, MoreHorizontal } from 'lucide-react';
+import { Calendar, Lock, MoreHorizontal } from 'lucide-react';
 import type { KanbanTask } from '../../lib/types';
 import { TASK_CATEGORIES } from '../../lib/constants';
 import { formatDate, truncate } from '../../lib/utils';
@@ -40,12 +40,6 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
 
   const isOverdue = task.targetDate && new Date(task.targetDate) < new Date() && task.column !== 'completed';
 
-  const handleToggle = (e: React.SyntheticEvent, subtaskId: string) => {
-    // Prevent drag start + card open, just toggle the subtask
-    e.stopPropagation();
-    toggleSubtask(task.id, subtaskId);
-  };
-
   return (
     <div
       ref={setNodeRef}
@@ -73,7 +67,7 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
             P{task.priority}
           </span>
           {task.securityReviewPassed && (
-            <Lock size={10} style={{ color: 'var(--success)' }} />
+            <Lock size={10} style={{ color: 'var(--success)' }} aria-hidden="true" />
           )}
         </div>
 
@@ -84,34 +78,32 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
 
         {/* Subtask list — inline checkboxes */}
         {totalSubtasks > 0 && (
-          <div className="space-y-1" onPointerDown={(e) => e.stopPropagation()}>
-            {task.subtasks.slice(0, MAX_SUBTASKS_SHOWN).map((st) => (
-              <div
-                key={st.id}
-                className="flex items-center gap-2 py-0.5 px-1 rounded transition-soft"
-                style={{ background: st.done ? 'var(--bg-subtle)' : 'transparent' }}
-                onClick={(e) => handleToggle(e, st.id)}
+        <div className="space-y-1" onPointerDown={(e) => e.stopPropagation()}>
+          {task.subtasks.slice(0, MAX_SUBTASKS_SHOWN).map((st) => (
+            <label
+              key={st.id}
+              className="flex items-center gap-2 py-0.5 px-1 rounded cursor-pointer transition-soft"
+              style={{ background: st.done ? 'var(--bg-subtle)' : 'transparent' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={st.done}
+                onChange={() => toggleSubtask(task.id, st.id)}
+                className="flex-shrink-0 w-3.5 h-3.5 rounded cursor-pointer"
+                style={{ accentColor: 'var(--success)' }}
+              />
+              <span
+                className="text-xs flex-1 truncate"
+                style={{
+                  color: st.done ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                  textDecoration: st.done ? 'line-through' : 'none',
+                }}
               >
-                <span
-                  className="flex-shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-soft"
-                  style={{
-                    borderColor: st.done ? 'var(--success)' : 'var(--border-color)',
-                    background: st.done ? 'var(--success)' : 'transparent',
-                  }}
-                >
-                  {st.done && <Check size={9} color="white" strokeWidth={3} />}
-                </span>
-                <span
-                  className="text-xs flex-1 truncate"
-                  style={{
-                    color: st.done ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                    textDecoration: st.done ? 'line-through' : 'none',
-                  }}
-                >
-                  {st.title}
-                </span>
-              </div>
-            ))}
+                {st.title}
+              </span>
+            </label>
+          ))}
             {hiddenSubtasks > 0 && (
               <p className="text-[10px] pl-1" style={{ color: 'var(--text-tertiary)' }}>
                 +{hiddenSubtasks} more
@@ -151,7 +143,15 @@ export function KanbanCard({ task, onClick }: KanbanCardProps) {
             </span>
           )}
           <div className="flex-1" />
-          <MoreHorizontal size={12} style={{ color: 'var(--text-tertiary)' }} />
+          <button
+            type="button"
+            className="flex items-center justify-center rounded-full p-1"
+            style={{ color: 'var(--text-tertiary)' }}
+            aria-label={`Open task: ${task.title}`}
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+          >
+            <MoreHorizontal size={12} aria-hidden="true" />
+          </button>
         </div>
       </div>
     </div>

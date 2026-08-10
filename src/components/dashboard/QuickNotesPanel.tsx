@@ -36,6 +36,7 @@ export function QuickNotesPanel() {
         onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
         placeholder="Capture an idea… ⏎"
         className="input-sakura text-xs"
+        aria-label="Quick note"
       />
 
       {loading ? (
@@ -48,7 +49,7 @@ export function QuickNotesPanel() {
           No notes yet — jot anything down, it syncs to every device.
         </p>
       ) : (
-        <div className="space-y-1 max-h-56 overflow-y-auto pr-0.5">
+        <div className="space-y-1 max-h-56 overflow-y-auto pr-0.5" style={{ overscrollBehavior: 'contain' }}>
           {notes.slice().reverse().map((n) => (
             <div
               key={n.id}
@@ -66,8 +67,9 @@ export function QuickNotesPanel() {
                 className="opacity-0 group-hover:opacity-100 transition-soft flex-shrink-0"
                 style={{ color: 'var(--text-tertiary)' }}
                 title="Delete note"
+                aria-label="Delete note"
               >
-                <X size={11} />
+                <X size={11} aria-hidden="true" />
               </button>
             </div>
           ))}

@@ -84,7 +84,6 @@ export function AIAssistantPanel() {
       <div className="flex-1 overflow-y-auto space-y-3 p-4">
         {messages.length === 0 && !busy && (
           <div className="text-center py-10 space-y-3">
-            <div className="text-3xl"></div>
             <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               JY Workstation Assistant
             </p>
@@ -171,9 +170,10 @@ export function AIAssistantPanel() {
           placeholder="Ask for insights or make changes… (e.g. “Add a study block tomorrow 9–10”)"
           className="input-sakura text-sm flex-1"
           disabled={busy}
+          aria-label="Message the assistant"
         />
-        <button onClick={() => send()} disabled={busy || !input.trim()} className="btn-sakura btn-primary btn-sm">
-          {busy ? <Dots size={14} /> : <Send size={14} />}
+        <button onClick={() => send()} disabled={busy || !input.trim()} className="btn-sakura btn-primary btn-sm" aria-label="Send message">
+          {busy ? <Dots size={14} aria-hidden="true" /> : <Send size={14} aria-hidden="true" />}
         </button>
       </div>
       <div className="px-3 pb-2 flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>

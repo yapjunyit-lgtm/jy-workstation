@@ -12,6 +12,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     /* Palette — warm off-white, never pure white/black */
     --bg:             oklch(97.5% 0.006 90);
     --bg-elevated:    oklch(99.4% 0.004 90);
@@ -73,7 +74,7 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; -webkit-tap-highlight-color: transparent; }
 
   body {
     font-family: var(--font-sans);
@@ -87,7 +88,9 @@
 
   #root { min-height: 100vh; display: flex; flex-direction: column; }
 
-  h1, h2, h3, h4 { color: var(--text); font-weight: 650; letter-spacing: -0.015em; }
+  h1, h2, h3, h4 { color: var(--text); font-weight: 650; letter-spacing: -0.015em; scroll-margin-top: 24px; }
+
+  button { touch-action: manipulation; }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -180,7 +183,7 @@
     width: 100%;
   }
   .input-sakura::placeholder { color: var(--text-faint); }
-  .input-sakura:focus {
+  .input-sakura:focus-visible {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);
@@ -269,7 +272,16 @@
   @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
   @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 
-  .transition-soft { transition: all 200ms var(--ease-out-quint); }
+  .transition-soft {
+    transition:
+      background-color 200ms var(--ease-out-quint),
+      border-color 200ms var(--ease-out-quint),
+      color 200ms var(--ease-out-quint),
+      box-shadow 200ms var(--ease-out-quint),
+      transform 200ms var(--ease-out-quint),
+      opacity 200ms var(--ease-out-quint),
+      width 200ms var(--ease-out-quint);
+  }
 
   .page-enter { animation: fadeUp 420ms var(--ease-out-quint); }
   .modal-enter { animation: scaleIn 260ms var(--ease-out-quint); }

@@ -33,17 +33,25 @@ export function HelpOverlay() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(59, 56, 51, 0.15)' }}
-      onClick={() => setIsOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
     >
+      <button
+        type="button"
+        aria-label="Close shortcuts"
+        onClick={() => setIsOpen(false)}
+        className="absolute inset-0"
+        style={{ background: 'rgba(59, 56, 51, 0.15)', cursor: 'default' }}
+      />
       <div
-        className="card-static w-full max-w-sm mx-4 shadow-xl modal-enter"
+        className="card-static w-full max-w-sm mx-4 shadow-xl modal-enter relative"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>⌨ Keyboard Shortcuts</h3>
-          <button onClick={() => setIsOpen(false)} className="btn-sakura btn-ghost btn-sm">
-            <X size={14} />
+          <button onClick={() => setIsOpen(false)} className="btn-sakura btn-ghost btn-sm" aria-label="Close shortcuts">
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 

@@ -65,8 +65,10 @@ export function TopBar() {
         <ShiftIndicator />
       </div>
 
-      {/* Search hint */}
-      <div
+      {/* Search hint — opens the command palette */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent('jy:open-command-palette'))}
         className="hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5 text-xs flex-shrink-0"
         style={{
           background: 'var(--bg-elevated)',
@@ -74,17 +76,19 @@ export function TopBar() {
           boxShadow: 'var(--shadow-card-contact)',
           color: 'var(--text-muted)',
           minWidth: 200,
+          cursor: 'pointer',
         }}
+        aria-label="Open command palette"
       >
-        <Search size={13} />
-        <span className="flex-1">Quick search...</span>
+        <Search size={13} aria-hidden="true" />
+        <span className="flex-1">Quick search…</span>
         <kbd
           className="font-mono text-[10px] px-1.5 py-0.5 rounded-full"
           style={{ background: 'var(--bg-subtle)', color: 'var(--text-faint)' }}
         >
           ⌘K
         </kbd>
-      </div>
+      </button>
 
       {/* Cloud sync status */}
       <div

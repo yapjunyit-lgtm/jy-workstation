@@ -13,11 +13,11 @@ export function PageHeader({ eyebrow, title, accent, children }: PageHeaderProps
     <div className="flex items-end justify-between flex-wrap gap-4 t-reveal is-in">
       <div>
         <span className="meta-label">{eyebrow}</span>
-        <h2 className="mt-1 text-[28px] font-bold tracking-tight leading-none" style={{ color: 'var(--text)' }}>
+        <h1 className="mt-1 text-[28px] font-bold tracking-tight leading-none" style={{ color: 'var(--text)' }}>
           {parts[0]}
           <span className="serif-accent" style={{ color: 'var(--accent)' }}>{accent}</span>
           {parts[1] ?? ''}
-        </h2>
+        </h1>
       </div>
       {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>

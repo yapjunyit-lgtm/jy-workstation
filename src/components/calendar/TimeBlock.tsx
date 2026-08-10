@@ -12,17 +12,23 @@ export function TimeBlock({ block, hourHeight, startHour, onClick }: TimeBlockPr
   const height = (block.endHour - block.startHour) * hourHeight;
 
   return (
-    <div
-      className="absolute left-1 right-1 rounded-md px-2 py-1 overflow-hidden text-xs transition-soft cursor-pointer hover:brightness-95"
+    <button
+      type="button"
+      className="absolute left-1 right-1 rounded-md px-2 py-1 overflow-hidden text-xs cursor-pointer hover:brightness-95"
       style={{
         top: `${top}px`,
         height: `${Math.max(height, 20)}px`,
         background: block.color + '25',
+        border: 'none',
         borderLeft: `3px solid ${block.color}`,
         color: 'var(--text-primary)',
         lineHeight: 1.3,
+        textAlign: 'left',
+        display: 'block',
+        fontFamily: 'inherit',
       }}
       onClick={(e) => { e.stopPropagation(); onClick?.(block); }}
+      aria-label={`Open event: ${block.label}`}
     >
       <div className="font-medium truncate">{block.label}</div>
       {height > 30 && (
@@ -30,7 +36,7 @@ export function TimeBlock({ block, hourHeight, startHour, onClick }: TimeBlockPr
           {formatHour(block.startHour)} – {formatHour(block.endHour)}
         </div>
       )}
-    </div>
+    </button>
   );
 }
 

@@ -4,6 +4,7 @@ import { useVaultStore } from '../../stores/useVaultStore';
 import { SNIPPET_CATEGORIES } from '../../lib/constants';
 import { SnippetCard } from './SnippetCard';
 import type { SnippetCategory } from '../../lib/types';
+import { shouldAutoFocus } from '../../lib/utils';
 
 export function SnippetLibrary() {
   const { snippets, addSnippet, updateSnippet, removeSnippet } = useVaultStore();
@@ -50,8 +51,9 @@ export function SnippetLibrary() {
             id="snippet-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search snippets..."
+            placeholder="Search snippets…"
             className="input-sakura text-sm pl-9"
+            aria-label="Search snippets"
           />
         </div>
         <button onClick={() => setShowAddForm(!showAddForm)} className="btn-sakura btn-primary btn-sm">
@@ -68,14 +70,16 @@ export function SnippetLibrary() {
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Snippet title"
             className="input-sakura text-sm"
-            autoFocus
+            autoFocus={shouldAutoFocus()}
+            aria-label="Snippet title"
           />
           <textarea
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
-            placeholder="Paste code or prompt here..."
+            placeholder="Paste code or prompt here…"
             className="input-sakura text-sm font-mono"
             rows={6}
+            aria-label="Snippet content"
           />
           <div className="flex items-center gap-3">
             <select value={newCategory} onChange={(e) => setNewCategory(e.target.value as SnippetCategory)} className="input-sakura text-sm w-auto">
@@ -88,6 +92,7 @@ export function SnippetLibrary() {
               onChange={(e) => setNewTags(e.target.value)}
               placeholder="Tags (comma-separated)"
               className="input-sakura text-sm flex-1"
+              aria-label="Snippet tags"
             />
           </div>
           <div className="flex items-center gap-2">

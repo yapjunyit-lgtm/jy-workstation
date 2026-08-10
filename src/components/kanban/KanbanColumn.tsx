@@ -37,8 +37,9 @@ export function KanbanColumn({ column, label, tasks, onCardClick, onAddTask }: K
           onClick={onAddTask}
           className="btn-sakura btn-ghost btn-sm"
           title="Add task"
+          aria-label={`Add task to ${label}`}
         >
-          <Plus size={14} />
+          <Plus size={14} aria-hidden="true" />
         </button>
       </div>
 

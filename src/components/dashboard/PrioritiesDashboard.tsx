@@ -4,6 +4,7 @@ import { Plus, Calendar, Check } from 'lucide-react';
 import { usePrioritiesStore } from '../../stores/usePrioritiesStore';
 import { useKanbanStore } from '../../stores/useKanbanStore';
 import { formatDate, todayISO } from '../../lib/utils';
+import { shouldAutoFocus } from '../../lib/utils';
 import { Skeleton } from '../layout/Skeleton';
 
 const PRIORITY_COLORS: Record<number, string> = {
@@ -88,6 +89,7 @@ export function PrioritiesDashboard() {
               onChange={(e) => setPriorityRank(Number(e.target.value) as 1 | 2 | 3)}
               className="input-sakura text-xs"
               style={{ width: 64 }}
+              aria-label="Priority level"
             >
               {[1, 2, 3].map((r) => <option key={r} value={r}>P{r}</option>)}
             </select>
@@ -97,7 +99,8 @@ export function PrioritiesDashboard() {
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddPriority(); if (e.key === 'Escape') setAddingPriority(false); }}
               placeholder="Add a priority…"
               className="input-sakura text-sm flex-1"
-              autoFocus
+              autoFocus={shouldAutoFocus()}
+              aria-label="New priority"
             />
             <button onClick={handleAddPriority} className="btn-sakura btn-primary btn-sm">Add</button>
           </div>
@@ -122,12 +125,14 @@ export function PrioritiesDashboard() {
                 <button
                   onClick={() => toggle(p.id)}
                   className="flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center transition-soft"
+                  aria-label={p.completed ? 'Mark priority incomplete' : 'Mark priority complete'}
+                  aria-pressed={p.completed}
                   style={{
                     borderColor: p.completed ? 'var(--success)' : 'var(--border-color)',
                     background: p.completed ? 'var(--success)' : 'transparent',
                   }}
                 >
-                  {p.completed && <Check size={10} color="white" strokeWidth={3} />}
+                  {p.completed && <Check size={10} color="white" strokeWidth={3} aria-hidden="true" />}
                 </button>
                 <span
                   className="badge text-[10px] flex-shrink-0"
@@ -151,6 +156,7 @@ export function PrioritiesDashboard() {
                   onClick={() => remove(p.id)}
                   className="text-xs flex-shrink-0"
                   style={{ color: 'var(--text-tertiary)' }}
+                  aria-label={`Remove priority: ${p.title}`}
                 >
                   ✕
                 </button>
@@ -182,7 +188,8 @@ export function PrioritiesDashboard() {
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(); if (e.key === 'Escape') setAddingTask(false); }}
               placeholder="Task name…"
               className="input-sakura text-sm flex-1"
-              autoFocus
+              autoFocus={shouldAutoFocus()}
+              aria-label="New task name"
             />
             <input
               type="date"
@@ -190,6 +197,7 @@ export function PrioritiesDashboard() {
               onChange={(e) => setNewTaskDue(e.target.value)}
               className="input-sakura text-sm"
               style={{ width: 140 }}
+              aria-label="Due date"
             />
             <button onClick={handleAddTask} className="btn-sakura btn-primary btn-sm">Add</button>
           </div>
@@ -202,10 +210,11 @@ export function PrioritiesDashboard() {
             {sortedTasks.map((t) => {
               const overdue = t.targetDate && t.targetDate < today && t.column !== 'completed';
               return (
-                <div
+                <button
+                  type="button"
                   key={t.id}
-                  className="flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer transition-soft"
-                  style={{ background: 'var(--bg-subtle)' }}
+                  className="flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer transition-soft text-left w-full"
+                  style={{ background: 'var(--bg-subtle)', border: 'none', fontFamily: 'inherit' }}
                   onClick={() => navigate(`/kanban?task=${encodeURIComponent(t.id)}`)}
                   title="Open in Kanban"
                 >
@@ -223,7 +232,7 @@ export function PrioritiesDashboard() {
                       className="flex items-center gap-1 text-[10px] flex-shrink-0"
                       style={{ color: overdue ? 'var(--danger)' : 'var(--text-tertiary)' }}
                     >
-                      <Calendar size={10} />
+                      <Calendar size={10} aria-hidden="true" />
                       {formatDate(t.targetDate)}
                       {overdue && ' • overdue'}
                     </span>
@@ -232,7 +241,7 @@ export function PrioritiesDashboard() {
                       no due date
                     </span>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>

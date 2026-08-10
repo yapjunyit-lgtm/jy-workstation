@@ -7,6 +7,7 @@ import { isBridgeReachable } from '../lib/cloud-sync';
 import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PillTabs } from '../components/layout/PillTabs';
+import { formatDateTimeIntl, formatTimeIntl, formatDateIntl } from '../lib/utils';
 
 type SettingsTab = 'auth' | 'sync' | 'calendar' | 'cloud' | 'backup';
 
@@ -61,9 +62,9 @@ function AuthTab() {
   return (
     <div className="card-static max-w-md space-y-4">
       <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Change Passphrase</h3>
-      <input type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} placeholder="Current passphrase" className="input-sakura text-sm" />
-      <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="New passphrase (min 8 chars)" className="input-sakura text-sm" />
-      <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="Confirm new passphrase" className="input-sakura text-sm" />
+      <input type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} placeholder="Current passphrase" className="input-sakura text-sm" aria-label="Current passphrase" />
+      <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="New passphrase (min 8 chars)" className="input-sakura text-sm" aria-label="New passphrase" />
+      <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="Confirm new passphrase" className="input-sakura text-sm" aria-label="Confirm new passphrase" />
       {(msg || error) && (
         <p className="text-xs" style={{ color: msg.includes('success') ? 'var(--success)' : 'var(--danger)' }}>{msg || error}</p>
       )}
@@ -117,12 +118,15 @@ function SyncTab() {
         <label className="text-sm" style={{ color: 'var(--text-primary)' }}>Auto-export</label>
         <button
           onClick={() => updateConfig({ autoExportEnabled: !config.autoExportEnabled })}
+          role="switch"
+          aria-checked={config.autoExportEnabled}
+          aria-label="Toggle auto-export"
           className="w-10 h-5 rounded-full relative transition-soft"
           style={{ background: config.autoExportEnabled ? 'var(--accent)' : 'var(--border-color)' }}
         >
           <div
-            className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-soft shadow-sm"
-            style={{ left: config.autoExportEnabled ? '22px' : '2px' }}
+            className="w-4 h-4 rounded-full bg-white absolute top-0.5 shadow-sm"
+            style={{ left: 2, transform: config.autoExportEnabled ? 'translateX(20px)' : 'translateX(0)', transition: 'transform 200ms var(--ease-out-quint)' }}
           />
         </button>
       </div>
@@ -143,12 +147,12 @@ function SyncTab() {
       )}
 
       <button onClick={handleExport} disabled={isExporting} className="btn-sakura btn-primary btn-sm">
-        {isExporting ? 'Exporting...' : 'Export All as Markdown ZIP'}
+        {isExporting ? 'Exporting…' : 'Export All as Markdown ZIP'}
       </button>
 
       {config.lastExportAt && (
         <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Last export: {new Date(config.lastExportAt).toLocaleString()}
+          Last export: {formatDateTimeIntl(config.lastExportAt)}
         </p>
       )}
     </div>
@@ -174,7 +178,7 @@ function BackupTab() {
     setImporting(true);
     try {
       await importFullBackupJSON(file);
-      setMsg('Backup restored! Reloading...');
+      setMsg('Backup restored! Reloading…');
       setTimeout(() => window.location.reload(), 1500);
     } catch {
       setMsg('Failed to import. Check file format.');
@@ -203,8 +207,9 @@ function BackupTab() {
         onChange={handleImport}
         className="text-sm"
         disabled={importing}
+        aria-label="Backup JSON file"
       />
-      {importing && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Importing...</p>}
+      {importing && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Importing…</p>}
       {msg && <p className="text-xs" style={{ color: msg.includes('Failed') ? 'var(--danger)' : 'var(--success)' }}>{msg}</p>}
     </div>
   );
@@ -245,7 +250,7 @@ function CloudTab() {
     try {
       const results = await pullAllFromCloud();
       const total = Object.values(results).reduce((a, b) => a + b, 0);
-      setStatus(`Pulled ${total} records from local database. Reloading...`);
+      setStatus(`Pulled ${total} records from local database. Reloading…`);
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: any) {
       setStatus(`Pull failed: ${e.message}`);
@@ -258,7 +263,7 @@ function CloudTab() {
       <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>💾 Local Database Sync</h3>
 
       {connected === null ? (
-        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Checking bridge...</p>
+        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Checking bridge…</p>
       ) : connected ? (
         <div className="p-3 rounded-lg space-y-3" style={{ background: '#E2EDE4' }}>
           <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>Connected to local SQLite (vault bridge)</p>
@@ -273,10 +278,10 @@ function CloudTab() {
           )}
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handlePush} disabled={syncing} className="btn-sakura btn-primary btn-sm">
-              {syncing ? 'Syncing...' : 'Push to Database'}
+              {syncing ? 'Syncing…' : 'Push to Database'}
             </button>
             <button onClick={handlePull} disabled={syncing} className="btn-sakura btn-secondary btn-sm">
-              {syncing ? 'Syncing...' : 'Pull from Database'}
+              {syncing ? 'Syncing…' : 'Pull from Database'}
             </button>
             <button onClick={() => refresh()} className="btn-sakura btn-ghost btn-sm">Refresh</button>
           </div>
@@ -329,7 +334,7 @@ function CalendarTab() {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://calendar.google.com/calendar/ical/..."
+          placeholder="https://calendar.google.com/calendar/ical/…"
           className="input-sakura text-sm font-mono"
         />
       </div>
@@ -341,19 +346,19 @@ function CalendarTab() {
         </button>
       </div>
 
-      {loading && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Fetching calendar events...</p>}
+      {loading && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Fetching calendar events…</p>}
       {error && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
       {lastFetched && !loading && (
         <div className="space-y-2">
           <p className="text-xs" style={{ color: 'var(--success)' }}>
-            {events.length} events loaded · Last synced: {new Date(lastFetched).toLocaleTimeString()}
+            {events.length} events loaded · Last synced: {formatTimeIntl(lastFetched)}
           </p>
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {events.slice(0, 5).map((e) => (
               <div key={e.uid} className="text-xs flex items-center gap-2 py-1" style={{ color: 'var(--text-secondary)' }}>
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#4285F4' }} />
                 <span className="truncate">{e.title}</span>
-                <span style={{ color: 'var(--text-tertiary)' }}>{new Date(e.start).toLocaleDateString()}</span>
+                <span style={{ color: 'var(--text-tertiary)' }}>{formatDateIntl(new Date(e.start).getTime())}</span>
               </div>
             ))}
             {events.length > 5 && (

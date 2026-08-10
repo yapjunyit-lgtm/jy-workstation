@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Check, Lock, Unlock } from 'lucide-react';
+import { X, Plus, Trash2, Lock, Unlock } from 'lucide-react';
 import { useKanbanStore } from '../../stores/useKanbanStore';
 import { TASK_CATEGORIES, KANBAN_COLUMNS } from '../../lib/constants';
 import type { KanbanTask, KanbanColumn, TaskCategory } from '../../lib/types';
+import { shouldAutoFocus } from '../../lib/utils';
 
 interface KanbanCardDetailProps {
   task: KanbanTask;
@@ -53,22 +54,30 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]"
-      style={{ background: 'rgba(59, 56, 51, 0.15)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit task"
     >
+      <button
+        type="button"
+        aria-label="Close task editor"
+        onClick={onClose}
+        className="absolute inset-0"
+        style={{ background: 'rgba(59, 56, 51, 0.15)', cursor: 'default' }}
+      />
       <div
-        className="card-static w-full max-w-lg mx-4 shadow-lg modal-enter overflow-y-auto"
-        style={{ maxHeight: '80vh', animation: 'scaleIn 260ms var(--ease-out-quint)' }}
+        className="card-static w-full max-w-lg mx-4 shadow-lg modal-enter overflow-y-auto relative"
+        style={{ maxHeight: '80vh', animation: 'scaleIn 260ms var(--ease-out-quint)', overscrollBehavior: 'contain' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Edit Task</span>
           <div className="flex items-center gap-1">
-            <button onClick={handleDelete} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
-              <Trash2 size={14} />
+            <button onClick={handleDelete} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }} aria-label="Delete task">
+              <Trash2 size={14} aria-hidden="true" />
             </button>
-            <button onClick={onClose} className="btn-sakura btn-ghost btn-sm">
-              <X size={14} />
+            <button onClick={onClose} className="btn-sakura btn-ghost btn-sm" aria-label="Close task editor">
+              <X size={14} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -80,7 +89,8 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
             onChange={(e) => { setTitle(e.target.value); markChanged(); }}
             placeholder="Task title"
             className="input-sakura text-base font-medium"
-            autoFocus
+            autoFocus={shouldAutoFocus()}
+            aria-label="Task title"
           />
 
           {/* Description */}
@@ -90,6 +100,7 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
             placeholder="Description (optional)"
             className="input-sakura text-sm"
             rows={3}
+            aria-label="Description"
           />
 
           {/* Category + Priority + Column row */}
@@ -147,12 +158,13 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
               <button
                 onClick={() => { setSecurityPassed(!securityPassed); markChanged(); }}
                 className="btn-sakura btn-sm flex items-center gap-1.5"
+                aria-pressed={securityPassed}
                 style={{
                   background: securityPassed ? '#E2EDE4' : 'var(--bg-subtle)',
                   color: securityPassed ? 'var(--success)' : 'var(--text-secondary)',
                 }}
               >
-                {securityPassed ? <Lock size={12} /> : <Unlock size={12} />}
+                {securityPassed ? <Lock size={12} aria-hidden="true" /> : <Unlock size={12} aria-hidden="true" />}
                 <span className="text-xs">{securityPassed ? 'Reviewed' : 'Security Check'}</span>
               </button>
             </div>
@@ -165,17 +177,14 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
             </label>
             <div className="space-y-1.5 mb-2">
               {task.subtasks.map((st) => (
-                <div key={st.id} className="flex items-center gap-2 py-1">
-                  <button
-                    onClick={() => toggleSubtask(task.id, st.id)}
-                    className="flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-soft"
-                    style={{
-                      borderColor: st.done ? 'var(--success)' : 'var(--border-color)',
-                      background: st.done ? 'var(--success)' : 'transparent',
-                    }}
-                  >
-                    {st.done && <Check size={10} color="white" />}
-                  </button>
+                <label key={st.id} className="flex items-center gap-2 py-1 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={st.done}
+                    onChange={() => toggleSubtask(task.id, st.id)}
+                    className="flex-shrink-0 w-4 h-4 rounded cursor-pointer"
+                    style={{ accentColor: 'var(--success)' }}
+                  />
                   <span
                     className="text-sm flex-1"
                     style={{
@@ -185,7 +194,7 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
                   >
                     {st.title}
                   </span>
-                </div>
+                </label>
               ))}
             </div>
             <div className="flex items-center gap-2">
@@ -193,11 +202,12 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
                 value={newSubtask}
                 onChange={(e) => setNewSubtask(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddSubtask(); }}
-                placeholder="Add subtask..."
+                placeholder="Add subtask…"
                 className="input-sakura text-sm flex-1"
+                aria-label="New subtask title"
               />
-              <button onClick={handleAddSubtask} className="btn-sakura btn-ghost btn-sm" disabled={!newSubtask.trim()}>
-                <Plus size={14} />
+              <button onClick={handleAddSubtask} className="btn-sakura btn-ghost btn-sm" disabled={!newSubtask.trim()} aria-label="Add subtask">
+                <Plus size={14} aria-hidden="true" />
               </button>
             </div>
           </div>

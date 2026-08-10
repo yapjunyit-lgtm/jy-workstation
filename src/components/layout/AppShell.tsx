@@ -7,10 +7,29 @@ import { HelpOverlay } from './HelpOverlay';
 export function AppShell() {
   return (
     <div className="grain-overlay flex" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only"
+        style={{
+          position: 'fixed',
+          top: 10,
+          left: 10,
+          zIndex: 100,
+          background: 'var(--text)',
+          color: 'var(--bg)',
+          padding: '8px 14px',
+          borderRadius: 999,
+          fontSize: 13,
+          fontWeight: 600,
+          textDecoration: 'none',
+        }}
+      >
+        Skip to content
+      </a>
       <Rail />
       <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
         <TopBar />
-        <main className="flex-1" style={{ padding: '28px 36px 64px' }}>
+        <main id="main" tabIndex={-1} className="flex-1" style={{ padding: '28px 36px 64px', outline: 'none' }}>
           <div className="mx-auto" style={{ maxWidth: 1400 }}>
             <Outlet />
           </div>

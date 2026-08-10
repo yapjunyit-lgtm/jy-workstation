@@ -26,7 +26,6 @@ export function formatTime(ts: number): string {
 export interface ShiftInfo {
   type: 'weekday' | 'sat-shift' | 'off';
   label: string;
-  emoji: string;
   color: string;
 }
 
@@ -36,12 +35,12 @@ export function getShiftInfo(date: Date = new Date()): ShiftInfo {
   const weekOfMonth = Math.ceil(dayOfMonth / 7);
 
   if (day === 6 && (weekOfMonth === 1 || weekOfMonth >= 4)) {
-    return { type: 'sat-shift', label: 'Saturday Shift', emoji: '\u{1F6E2}️', color: 'var(--danger)' };
+    return { type: 'sat-shift', label: 'Saturday Shift', color: 'var(--danger)' };
   }
   if (day >= 1 && day <= 5) {
-    return { type: 'weekday', label: 'Standard Weekday', emoji: '\u{1F33F}', color: 'var(--success)' };
+    return { type: 'weekday', label: 'Standard Weekday', color: 'var(--success)' };
   }
-  return { type: 'off', label: 'Off / Study Day', emoji: '\u{1F393}', color: 'var(--text-tertiary)' };
+  return { type: 'off', label: 'Off / Study Day', color: 'var(--text-tertiary)' };
 }
 
 // ── Pomodoro Formatting ──
@@ -49,6 +48,26 @@ export function formatTimer(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+// ── Intl Formatting (locale-aware, replaces ad-hoc toLocale* calls) ──
+export function formatDateTimeIntl(ts: number): string {
+  return new Intl.DateTimeFormat('en-MY', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
+  }).format(ts);
+}
+
+export function formatTimeIntl(ts: number): string {
+  return new Intl.DateTimeFormat('en-MY', { hour: 'numeric', minute: '2-digit' }).format(ts);
+}
+
+export function formatDateIntl(ts: number): string {
+  return new Intl.DateTimeFormat('en-MY', { day: 'numeric', month: 'short', year: 'numeric' }).format(ts);
+}
+
+// Desktop-only autofocus (keyboard/pointer-fine devices)
+export function shouldAutoFocus(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches !== false;
 }
 
 // ── Clipboard ──
@@ -86,7 +105,7 @@ export function generateSTARSummary(entry: { action: string; result: string; qua
 // ── Truncate ──
 export function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen - 3) + '...';
+  return str.slice(0, maxLen - 1) + '…';
 }
 
 // ── Debounce ──

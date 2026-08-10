@@ -5,6 +5,7 @@ import { useKanbanStore } from '../../stores/useKanbanStore';
 import { useVaultStore } from '../../stores/useVaultStore';
 import { useBlockerStore } from '../../stores/useBlockerStore';
 import { useImpactStore } from '../../stores/useImpactStore';
+import { shouldAutoFocus } from '../../lib/utils';
 
 interface SearchResult {
   id: string;
@@ -40,6 +41,16 @@ export function CommandPalette() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen]);
+
+  useEffect(() => {
+    const open = () => {
+      setIsOpen(true);
+      setQuery('');
+      setSelectedIndex(0);
+    };
+    window.addEventListener('jy:open-command-palette', open);
+    return () => window.removeEventListener('jy:open-command-palette', open);
+  }, []);
 
   const results = useMemo<SearchResult[]>(() => {
     if (!query) {
@@ -125,11 +136,19 @@ export function CommandPalette() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
-      style={{ background: 'rgba(59, 56, 51, 0.15)' }}
-      onClick={() => setIsOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
     >
+      <button
+        type="button"
+        aria-label="Close search"
+        onClick={() => setIsOpen(false)}
+        className="absolute inset-0"
+        style={{ background: 'rgba(59, 56, 51, 0.15)', cursor: 'default' }}
+      />
       <div
-        className="card-static w-full max-w-lg mx-4 shadow-xl modal-enter"
+        className="card-static w-full max-w-lg mx-4 shadow-xl modal-enter relative"
         style={{ padding: 0, overflow: 'hidden' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -139,15 +158,16 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search tasks, snippets, or navigate..."
-            className="flex-1 text-sm bg-transparent border-none outline-none"
+            placeholder="Search tasks, snippets, or navigate…"
+            className="flex-1 text-sm bg-transparent border-none"
             style={{ color: 'var(--text-primary)' }}
-            autoFocus
+            autoFocus={shouldAutoFocus()}
+            aria-label="Search tasks and snippets"
           />
           <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-subtle)' }}>esc</span>
         </div>
 
-        <div className="max-h-72 overflow-y-auto">
+        <div className="max-h-72 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
           {results.length === 0 && query && (
             <p className="text-sm text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No results for "{query}"</p>
           )}

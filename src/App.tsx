@@ -78,9 +78,23 @@ function AppContent() {
         style={{ background: 'var(--bg-root)' }}
       >
         <div className="text-center">
-          <div className="text-3xl mb-3 animate-breathe">🌿</div>
+          <div
+            className="mx-auto mb-3 grid place-items-center rounded-full animate-breathe"
+            style={{
+              width: 44,
+              height: 44,
+              background: 'var(--text)',
+              color: 'var(--bg)',
+              fontFamily: 'var(--font-serif)',
+              fontStyle: 'italic',
+              fontSize: 22,
+              fontWeight: 600,
+            }}
+          >
+            J
+          </div>
           <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            Loading your workspace...
+            Loading your workspace…
           </p>
         </div>
       </div>

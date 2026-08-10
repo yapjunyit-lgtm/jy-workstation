@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { shouldAutoFocus } from '../../lib/utils';
 
 export function LoginScreen() {
   const { login, error, isLoading, clearError } = useAuthStore();
@@ -31,8 +32,9 @@ export function LoginScreen() {
               onChange={(e) => { setPassphrase(e.target.value); clearError(); }}
               placeholder="Enter passphrase"
               className="input-sakura mb-3 text-center"
-              autoFocus
+              autoFocus={shouldAutoFocus()}
               autoComplete="current-password"
+              aria-label="Passphrase"
             />
             {error && (
               <p className="text-xs mb-3" style={{ color: 'var(--danger)' }}>{error}</p>
@@ -42,7 +44,7 @@ export function LoginScreen() {
               className="btn-sakura btn-primary w-full"
               disabled={isLoading || passphrase.length < 8}
             >
-              {isLoading ? 'Unlocking...' : 'Unlock →'}
+              {isLoading ? 'Unlocking…' : 'Unlock →'}
             </button>
           </form>
         </div>

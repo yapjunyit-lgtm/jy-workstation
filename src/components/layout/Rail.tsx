@@ -46,6 +46,7 @@ export function Rail() {
           boxShadow: 'var(--shadow-card-contact)',
         }}
         title="JY Workstation"
+        aria-hidden="true"
       >
         J
       </motion.div>
@@ -62,6 +63,7 @@ export function Rail() {
               to={item.to}
               end={item.to === '/'}
               className="relative flex items-center justify-center rounded-full"
+              aria-label={item.label}
               style={{
                 width: 42,
                 height: 42,
@@ -106,6 +108,7 @@ export function Rail() {
       <NavLink
         to="/settings"
         className="relative flex items-center justify-center rounded-full"
+        aria-label="Settings"
         style={{
           width: 42,
           height: 42,

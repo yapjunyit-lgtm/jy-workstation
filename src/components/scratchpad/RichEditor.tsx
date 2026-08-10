@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Download } from 'lucide-react';
 import { useScratchpadStore } from '../../stores/useScratchpadStore';
 import { ObsidianExport } from '../../lib/obsidian-export';
 
@@ -54,7 +55,7 @@ export function RichEditor() {
     return (
       <div className="card-static">
         <div className="h-[200px] flex items-center justify-center">
-          <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading...</p>
+          <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading…</p>
         </div>
       </div>
     );
@@ -68,7 +69,7 @@ export function RichEditor() {
     background: active ? 'var(--bg-subtle)' : 'transparent',
     border: 'none',
     cursor: 'pointer',
-    transition: 'all 120ms ease-out',
+    transition: 'background 120ms ease-out, color 120ms ease-out',
     fontFamily: 'inherit',
   });
 
@@ -86,8 +87,9 @@ export function RichEditor() {
           className="text-xs px-2 py-0.5 rounded transition-soft"
           style={{ color: 'var(--text-muted)', border: 'none', background: 'transparent', cursor: 'pointer' }}
           title="Export to Obsidian"
+          aria-label="Export scratchpad to Obsidian"
         >
-          
+          <Download size={13} aria-hidden="true" />
         </button>
       </div>
 
@@ -106,7 +108,7 @@ export function RichEditor() {
           <textarea
             value={text}
             onChange={(e) => handleChange(e.target.value)}
-            placeholder="Write meeting notes, error logs, quick thoughts... (Markdown supported)"
+            placeholder="Write meeting notes, error logs, quick thoughts… (Markdown supported)"
             style={{
               width: '100%',
               background: 'var(--bg-subtle)',
@@ -118,9 +120,9 @@ export function RichEditor() {
               lineHeight: 1.7,
               color: 'var(--text-primary)',
               resize: 'none',
-              outline: 'none',
               minHeight: 300,
             }}
+            aria-label="Scratchpad editor"
           />
         )}
 

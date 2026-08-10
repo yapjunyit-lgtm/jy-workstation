@@ -15,7 +15,7 @@ export function ShiftIndicator() {
         color: shift.color,
       }}
     >
-      <span>{shift.emoji}</span>
+      <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: shift.color }} />
       {shift.label}
     </span>
   );

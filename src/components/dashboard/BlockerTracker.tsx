@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { useBlockerStore } from '../../stores/useBlockerStore';
 import type { BlockerStatus } from '../../lib/types';
+import { formatDateIntl, shouldAutoFocus } from '../../lib/utils';
 
 type Severity = 'high' | 'med' | 'low';
 
@@ -65,8 +66,9 @@ export function BlockerTracker() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What's blocking you?"
             className="input-sakura text-sm"
-            autoFocus
+            autoFocus={shouldAutoFocus()}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setShowForm(false); }}
+            aria-label="Blocker title"
           />
           <div className="flex items-center gap-2">
             <select value={severity} onChange={(e) => setSeverity(e.target.value as Severity)} className="input-sakura text-sm" style={{ width: 100 }}>
@@ -79,6 +81,7 @@ export function BlockerTracker() {
               onChange={(e) => setOwner(e.target.value)}
               placeholder="Owner"
               className="input-sakura text-sm flex-1"
+              aria-label="Blocker owner"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -108,7 +111,7 @@ export function BlockerTracker() {
 
       {/* List */}
       {loading ? (
-        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Loading...</p>
+        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Loading…</p>
       ) : filtered.length === 0 ? (
         <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No blockers — nice.</p>
       ) : (
@@ -129,7 +132,7 @@ export function BlockerTracker() {
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</div>
                   <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    Severity: {sev} · {new Date(b.createdAt).toLocaleDateString()}
+                    Severity: {sev} · {formatDateIntl(b.createdAt)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -152,6 +155,7 @@ export function BlockerTracker() {
                     onClick={() => remove(b.id)}
                     className="text-xs px-1.5 py-0.5 rounded transition-soft"
                     style={{ color: 'var(--text-tertiary)' }}
+                    aria-label={`Remove blocker: ${b.title}`}
                   >
                     ✕
                   </button>

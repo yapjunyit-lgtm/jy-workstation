@@ -40,23 +40,28 @@ export function SnippetCard({ snippet, onToggleFavorite, onDelete }: SnippetCard
               onClick={onToggleFavorite}
               className="btn-sakura btn-ghost btn-sm"
               title={snippet.isFavorite ? 'Unfavorite' : 'Favorite'}
+              aria-label={snippet.isFavorite ? 'Unfavorite snippet' : 'Favorite snippet'}
+              aria-pressed={snippet.isFavorite}
             >
-              <Star size={12} fill={snippet.isFavorite ? 'var(--warning)' : 'none'} color={snippet.isFavorite ? 'var(--warning)' : 'var(--text-tertiary)'} />
+              <Star size={12} fill={snippet.isFavorite ? 'var(--warning)' : 'none'} color={snippet.isFavorite ? 'var(--warning)' : 'var(--text-tertiary)'} aria-hidden="true" />
             </button>
-            <button onClick={handleCopy} className="btn-sakura btn-ghost btn-sm" title="Copy to clipboard">
-              {copied ? <Check size={12} color="var(--success)" /> : <Copy size={12} />}
+            <button onClick={handleCopy} className="btn-sakura btn-ghost btn-sm" title="Copy to clipboard" aria-label="Copy snippet to clipboard">
+              {copied ? <Check size={12} color="var(--success)" aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
             </button>
-            <button onClick={onDelete} className="btn-sakura btn-ghost btn-sm" title="Delete">
-              <Trash2 size={12} />
+            <button onClick={onDelete} className="btn-sakura btn-ghost btn-sm" title="Delete" aria-label="Delete snippet">
+              <Trash2 size={12} aria-hidden="true" />
             </button>
           </div>
         </div>
 
         {/* Code preview */}
-        <div
-          className="rounded-lg p-3 cursor-pointer overflow-hidden transition-soft"
-          style={{ background: 'var(--bg-subtle)', maxHeight: expanded ? 'none' : '80px' }}
+        <button
+          type="button"
+          className="rounded-lg p-3 cursor-pointer overflow-hidden transition-soft text-left w-full"
+          style={{ background: 'var(--bg-subtle)', maxHeight: expanded ? 'none' : '80px', border: 'none', fontFamily: 'inherit' }}
           onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse snippet preview' : 'Expand snippet preview'}
         >
           <pre className="text-xs font-mono whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             {expanded ? snippet.content : truncate(snippet.content, 150)}
@@ -64,7 +69,7 @@ export function SnippetCard({ snippet, onToggleFavorite, onDelete }: SnippetCard
           {snippet.content.length > 150 && !expanded && (
             <p className="text-[10px] mt-1" style={{ color: 'var(--accent)' }}>Click to expand</p>
           )}
-        </div>
+        </button>
 
         {/* Tags */}
         {snippet.tags.length > 0 && (

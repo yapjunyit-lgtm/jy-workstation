@@ -44,7 +44,7 @@ export function PomodoroTimer() {
 
       {/* SVG Ring */}
       <div className="relative" style={{ width: 100, height: 100 }}>
-        <svg width="100" height="100" viewBox="0 0 100 100">
+        <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
           {/* Background ring */}
           <circle
             cx="50" cy="50" r="42"
@@ -78,11 +78,11 @@ export function PomodoroTimer() {
 
       {/* Controls */}
       <div className="flex items-center gap-1 mt-3">
-        <button onClick={toggleTimer} className="btn-sakura btn-secondary btn-sm">
-          {isRunning ? <Pause size={12} /> : <Play size={12} />}
+        <button onClick={toggleTimer} className="btn-sakura btn-secondary btn-sm" aria-label={isRunning ? 'Pause pomodoro timer' : 'Start pomodoro timer'}>
+          {isRunning ? <Pause size={12} aria-hidden="true" /> : <Play size={12} aria-hidden="true" />}
         </button>
-        <button onClick={handleReset} className="btn-sakura btn-ghost btn-sm">
-          <RotateCcw size={12} />
+        <button onClick={handleReset} className="btn-sakura btn-ghost btn-sm" aria-label="Reset pomodoro timer">
+          <RotateCcw size={12} aria-hidden="true" />
         </button>
       </div>
 

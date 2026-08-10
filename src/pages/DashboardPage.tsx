@@ -6,7 +6,7 @@ import { QuickNotesPanel } from '../components/dashboard/QuickNotesPanel';
 
 export function DashboardPage() {
   const today = new Date();
-  const dayNum = today.getDate();
+  const dayNum = today.toLocaleDateString('en-US', { day: 'numeric' });
 
   return (
     <div className="page-enter space-y-8">
@@ -15,9 +15,9 @@ export function DashboardPage() {
         <span className="meta-label">
           {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long' })}
         </span>
-        <h2 className="mt-1 text-[42px] font-bold tracking-[-0.02em] leading-[1.02]" style={{ color: 'var(--text)' }}>
+        <h1 className="mt-1 text-[42px] font-bold tracking-[-0.02em] leading-[1.02]" style={{ color: 'var(--text)' }}>
           Your <span className="serif-accent" style={{ color: 'var(--accent)' }}>day</span>, {dayNum}.
-        </h2>
+        </h1>
         <p className="mt-2 text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>
           Priorities, tasks, and a scratchpad — one calm surface to run your shift.
         </p>

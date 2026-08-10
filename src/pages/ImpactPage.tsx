@@ -40,14 +40,21 @@ export function ImpactPage() {
 
         {/* Edit modal */}
         {editingId && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]" style={{ background: 'rgba(59, 56, 51, 0.15)' }} onClick={(e) => { if (e.target === e.currentTarget) setEditingId(null); }}>
-            <div className="card-static w-full max-w-lg mx-4 shadow-lg modal-enter space-y-3" style={{ maxHeight: '80vh', overflow: 'auto' }}>
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]" role="dialog" aria-modal="true" aria-label="Edit STAR entry">
+            <button
+              type="button"
+              aria-label="Close edit dialog"
+              onClick={() => setEditingId(null)}
+              className="absolute inset-0"
+              style={{ background: 'rgba(59, 56, 51, 0.15)', cursor: 'default' }}
+            />
+            <div className="card-static w-full max-w-lg mx-4 shadow-lg modal-enter space-y-3 relative" style={{ maxHeight: '80vh', overflow: 'auto', overscrollBehavior: 'contain' }}>
               <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Edit STAR Entry</h3>
-              <input value={editForm.situation || ''} onChange={(e) => setEditForm({ ...editForm, situation: e.target.value })} placeholder="Situation" className="input-sakura text-sm" />
-              <input value={editForm.task || ''} onChange={(e) => setEditForm({ ...editForm, task: e.target.value })} placeholder="Task" className="input-sakura text-sm" />
-              <textarea value={editForm.action || ''} onChange={(e) => setEditForm({ ...editForm, action: e.target.value })} placeholder="Action" className="input-sakura text-sm" rows={3} />
-              <input value={editForm.result || ''} onChange={(e) => setEditForm({ ...editForm, result: e.target.value })} placeholder="Result" className="input-sakura text-sm" />
-              <input value={editForm.quantitativeMetrics || ''} onChange={(e) => setEditForm({ ...editForm, quantitativeMetrics: e.target.value })} placeholder="Quantified Metrics" className="input-sakura text-sm" />
+              <input value={editForm.situation || ''} onChange={(e) => setEditForm({ ...editForm, situation: e.target.value })} placeholder="Situation" className="input-sakura text-sm" aria-label="Situation" />
+              <input value={editForm.task || ''} onChange={(e) => setEditForm({ ...editForm, task: e.target.value })} placeholder="Task" className="input-sakura text-sm" aria-label="Task" />
+              <textarea value={editForm.action || ''} onChange={(e) => setEditForm({ ...editForm, action: e.target.value })} placeholder="Action" className="input-sakura text-sm" rows={3} aria-label="Action" />
+              <input value={editForm.result || ''} onChange={(e) => setEditForm({ ...editForm, result: e.target.value })} placeholder="Result" className="input-sakura text-sm" aria-label="Result" />
+              <input value={editForm.quantitativeMetrics || ''} onChange={(e) => setEditForm({ ...editForm, quantitativeMetrics: e.target.value })} placeholder="Quantified Metrics" className="input-sakura text-sm" aria-label="Quantified metrics" />
               <div className="flex items-center gap-2">
                 <button onClick={saveEdit} className="btn-sakura btn-primary btn-sm">Save</button>
                 <button onClick={() => setEditingId(null)} className="btn-sakura btn-ghost btn-sm">Cancel</button>
@@ -57,7 +64,7 @@ export function ImpactPage() {
         )}
 
         {loading ? (
-          <p className="text-sm mt-3" style={{ color: 'var(--text-tertiary)' }}>Loading...</p>
+          <p className="text-sm mt-3" style={{ color: 'var(--text-tertiary)' }}>Loading…</p>
         ) : starEntries.length === 0 ? (
           <p className="text-sm mt-3" style={{ color: 'var(--text-tertiary)' }}>No STAR entries yet. Log your first impact!</p>
         ) : (

@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useImpactStore } from '../../stores/useImpactStore';
 import { SOP_STATUSES } from '../../lib/constants';
 import type { SOPStatus } from '../../lib/types';
+import { shouldAutoFocus } from '../../lib/utils';
 
 export function SOPTruacker() {
   const { sopDocuments, addSOP, updateSOPStatus, removeSOP } = useImpactStore();
@@ -30,10 +31,11 @@ export function SOPTruacker() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="SOP title..."
+            placeholder="SOP title…"
             className="input-sakura text-sm flex-1"
-            autoFocus
+            autoFocus={shouldAutoFocus()}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setShowForm(false); }}
+            aria-label="SOP title"
           />
           <button onClick={handleAdd} className="btn-sakura btn-primary btn-sm">Save</button>
           <button onClick={() => setShowForm(false)} className="btn-sakura btn-ghost btn-sm">Cancel</button>
@@ -57,8 +59,8 @@ export function SOPTruacker() {
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
-              <button onClick={() => removeSOP(doc.id)} className="btn-sakura btn-ghost btn-sm">
-                <Trash2 size={12} />
+              <button onClick={() => removeSOP(doc.id)} className="btn-sakura btn-ghost btn-sm" aria-label={`Delete ${doc.title}`}>
+                <Trash2 size={12} aria-hidden="true" />
               </button>
             </div>
           ))}

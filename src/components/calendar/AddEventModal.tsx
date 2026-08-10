@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useCalendarStore } from '../../stores/useCalendarStore';
 import { generateGoogleCalendarLink } from '../../lib/ics-parser';
 import type { BlockType } from '../../lib/types';
+import { shouldAutoFocus } from '../../lib/utils';
 
 const CATEGORIES: { type: BlockType; label: string; color: string }[] = [
   { type: 'work-shift',   label: 'Work',     color: '#C9A96E' },
@@ -86,19 +87,29 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]"
-      style={{ background: 'rgba(59, 56, 51, 0.15)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add event"
     >
+      <button
+        type="button"
+        aria-label="Close add event"
+        onClick={onClose}
+        className="absolute inset-0"
+        style={{ background: 'rgba(59, 56, 51, 0.15)', cursor: 'default' }}
+      />
       <div
-        className="card-static w-full max-w-md mx-4 shadow-xl modal-enter space-y-4"
+        className="card-static w-full max-w-md mx-4 shadow-xl modal-enter space-y-4 relative"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CalendarPlus size={16} style={{ color: 'var(--accent)' }} />
+            <CalendarPlus size={16} style={{ color: 'var(--accent)' }} aria-hidden="true" />
             <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Add Event</h3>
           </div>
-          <button onClick={onClose} className="btn-sakura btn-ghost btn-sm"><X size={14} /></button>
+          <button onClick={onClose} className="btn-sakura btn-ghost btn-sm" aria-label="Close add event">
+            <X size={14} aria-hidden="true" />
+          </button>
         </div>
 
         {added ? (
@@ -113,7 +124,14 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
         ) : (
           <>
             <div className="space-y-3">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" className="input-sakura text-sm" autoFocus />
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Event title"
+                className="input-sakura text-sm"
+                autoFocus={shouldAutoFocus()}
+                aria-label="Event title"
+              />
 
               {/* Category picker */}
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -164,13 +182,13 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
                 </div>
               )}
 
-              <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location or video link (optional)" className="input-sakura text-sm" />
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description or notes (optional)" className="input-sakura text-sm" rows={2} />
+              <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location or video link (optional)" className="input-sakura text-sm" aria-label="Location or video link" />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description or notes (optional)" className="input-sakura text-sm" rows={2} aria-label="Description or notes" />
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
               <button onClick={handleAddGoogle} className="btn-sakura btn-ghost btn-sm text-xs flex items-center gap-1" disabled={!title.trim()}>
-                <ExternalLink size={11} /> Google
+                <ExternalLink size={11} aria-hidden="true" /> Google
               </button>
               <div className="flex items-center gap-2">
                 <button onClick={onClose} className="btn-sakura btn-ghost btn-sm text-xs">Cancel</button>

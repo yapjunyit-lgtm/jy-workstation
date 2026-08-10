@@ -27,14 +27,14 @@ export function STARCard({ entry, onEdit, onDelete }: STARCardProps) {
           </span>
         </div>
         <div className="flex items-center gap-0.5">
-          <button onClick={handleObsidianExport} className="btn-sakura btn-ghost btn-sm" title="Export to Obsidian">
-            <Download size={12} />
+          <button onClick={handleObsidianExport} className="btn-sakura btn-ghost btn-sm" title="Export to Obsidian" aria-label="Export STAR entry to Obsidian">
+            <Download size={12} aria-hidden="true" />
           </button>
-          <button onClick={onEdit} className="btn-sakura btn-ghost btn-sm">
-            <Edit3 size={12} />
+          <button onClick={onEdit} className="btn-sakura btn-ghost btn-sm" aria-label="Edit STAR entry">
+            <Edit3 size={12} aria-hidden="true" />
           </button>
-          <button onClick={onDelete} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
-            <Trash2 size={12} />
+          <button onClick={onDelete} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }} aria-label="Delete STAR entry">
+            <Trash2 size={12} aria-hidden="true" />
           </button>
         </div>
       </div>

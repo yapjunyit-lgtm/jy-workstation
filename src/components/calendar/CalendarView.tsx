@@ -6,7 +6,7 @@ import {
   isSameMonth, isToday, startOfYear,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useNavigate as useRouterNavigate } from 'react-router-dom';
+import { useNavigate as useRouterNavigate, useSearchParams } from 'react-router-dom';
 import { useCalendarStore } from '../../stores/useCalendarStore';
 import { useGCalStore } from '../../stores/useGCalStore';
 import { useKanbanStore } from '../../stores/useKanbanStore';
@@ -34,10 +34,39 @@ const KANBAN_COLORS: Record<string, string> = {
   'documentation': '#C4887C',
 };
 const KANBAN_ID_PREFIX = 'task:';
+const VIEW_IDS: CalendarViewMode[] = ['year', 'month', 'week', 'day'];
 
 export function CalendarView() {
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
-  const [cursorDate, setCursorDate] = useState(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [viewMode, setViewModeState] = useState<CalendarViewMode>(() => {
+    const v = searchParams.get('view');
+    return VIEW_IDS.includes(v as CalendarViewMode) ? (v as CalendarViewMode) : 'week';
+  });
+  const [cursorDate, setCursorDateState] = useState<Date>(() => {
+    const d = searchParams.get('date');
+    if (!d) return new Date();
+    const parsed = new Date(d + 'T00:00:00');
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  });
+
+  const updateParams = (next: { view?: CalendarViewMode; date?: Date }) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (next.view) p.set('view', next.view);
+      if (next.date) p.set('date', format(next.date, 'yyyy-MM-dd'));
+      return p;
+    }, { replace: true });
+  };
+
+  const setViewMode = (v: CalendarViewMode) => {
+    setViewModeState(v);
+    updateParams({ view: v });
+  };
+
+  const setCursorDate = (d: Date) => {
+    setCursorDateState(d);
+    updateParams({ date: d });
+  };
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlockType | null>(null);
   const routerNav = useRouterNavigate();
@@ -126,9 +155,13 @@ export function CalendarView() {
     <div className="card-static space-y-4" style={{ padding: '16px 20px' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate('prev')} className="btn-sakura btn-ghost btn-sm"><ChevronLeft size={16} /></button>
+          <button onClick={() => navigate('prev')} className="btn-sakura btn-ghost btn-sm" aria-label={`Previous ${viewMode}`}>
+            <ChevronLeft size={16} aria-hidden="true" />
+          </button>
           <h3 className="text-base font-semibold min-w-[180px] text-center" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-          <button onClick={() => navigate('next')} className="btn-sakura btn-ghost btn-sm"><ChevronRight size={16} /></button>
+          <button onClick={() => navigate('next')} className="btn-sakura btn-ghost btn-sm" aria-label={`Next ${viewMode}`}>
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
           <button onClick={goToday} className="btn-sakura btn-secondary btn-sm text-xs">Today</button>
           <button onClick={() => setShowAddEvent(true)} className="btn-sakura btn-primary btn-sm text-xs flex items-center gap-1">
             <Plus size={12} /> Add Event
@@ -167,9 +200,16 @@ function YearGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: 
         const me = endOfMonth(ms);
         const days = eachDayOfInterval({ start: startOfWeek(ms, { weekStartsOn: 1 }), end: endOfWeek(me, { weekStartsOn: 1 }) });
         return (
-          <div key={format(ms,'yyyy-MM')} className="rounded-lg p-2 cursor-pointer transition-soft" style={{ background: 'var(--bg-subtle)' }}
-            onClick={() => onSelect(ms)}>
-            <div className="text-xs font-medium mb-1 text-center" style={{ color: 'var(--text-secondary)' }}>{format(ms, 'MMM')}</div>
+          <div key={format(ms,'yyyy-MM')} className="rounded-lg p-2 transition-soft" style={{ background: 'var(--bg-subtle)' }}>
+            <button
+              type="button"
+              onClick={() => onSelect(ms)}
+              className="w-full text-xs font-medium mb-1 text-center rounded"
+              style={{ color: 'var(--text-secondary)' }}
+              aria-label={`Open ${format(ms, 'MMMM yyyy')}`}
+            >
+              {format(ms, 'MMM')}
+            </button>
             <div className="grid gap-px" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
               {['M','T','W','T','F','S','S'].map((d,i) => (
                 <div key={i} className="text-[8px] text-center" style={{ color: 'var(--text-tertiary)' }}>{d}</div>
@@ -180,12 +220,17 @@ function YearGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: 
                 const inM = isSameMonth(day, ms);
                 const cur = isToday(day);
                 return (
-                  <div key={ds} className="text-[9px] text-center rounded-sm relative"
+                  <button
+                    key={ds}
+                    type="button"
+                    className="text-[9px] text-center rounded-sm relative"
                     style={{ color: !inM ? 'var(--text-tertiary)' : cur ? 'white' : 'var(--text-primary)', background: cur ? 'var(--accent)' : 'transparent', opacity: !inM ? 0.3 : 1, padding: '1px 0' }}
-                    onClick={(e) => { e.stopPropagation(); onSelect(day); }}>
-                    {hasBlock && <span className="absolute top-0 right-0.5 w-1 h-1 rounded-full" style={{ background: 'var(--accent)' }} />}
+                    onClick={() => onSelect(day)}
+                    aria-label={format(day, 'EEEE, MMMM d')}
+                  >
+                    {hasBlock && <span className="absolute top-0 right-0.5 w-1 h-1 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />}
                     {format(day,'d')}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -222,22 +267,33 @@ function MonthGrid({ cursorDate, blocks, kanbanByDate, onSelect, onOpenTask }: {
               const inM = isSameMonth(day, ms);
               const cur = isToday(day);
               return (
-                <div key={ds} className="rounded-lg p-1.5 min-h-[90px] cursor-pointer transition-soft border"
-                  style={{ background: !inM ? 'var(--bg-root)' : cur ? 'var(--accent-soft)' : 'var(--bg-surface)', borderColor: cur ? 'var(--accent)' : 'var(--border-color)', opacity: !inM ? 0.4 : 1 }}
-                  onClick={() => onSelect(day)}>
-                  <div className="text-xs font-medium mb-0.5" style={{ color: cur ? 'var(--accent)' : inM ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{format(day,'d')}</div>
+                <div key={ds} className="rounded-lg p-1.5 min-h-[90px] border transition-soft"
+                  style={{ background: !inM ? 'var(--bg-root)' : cur ? 'var(--accent-soft)' : 'var(--bg-surface)', borderColor: cur ? 'var(--accent)' : 'var(--border-color)', opacity: !inM ? 0.4 : 1 }}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(day)}
+                    className="block w-full text-xs font-medium mb-0.5 text-left rounded"
+                    style={{ color: cur ? 'var(--accent)' : inM ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                    aria-label={format(day, 'EEEE, MMMM d')}
+                  >
+                    {format(day,'d')}
+                  </button>
                   {dayBlocks.slice(0,2).map((b) => (
                     <div key={b.id} className="text-[10px] truncate rounded px-1 py-0.5 mb-0.5"
                       style={{ background: b.color+'30', borderLeft: `2px solid ${b.color}`, color: 'var(--text-primary)' }}>{b.label}</div>
                   ))}
                   {(kanbanByDate.get(ds) || []).slice(0,1).map((t) => (
-                    <div key={t.id}
-                      className="text-[10px] truncate rounded px-1 py-0.5 mb-0.5 cursor-pointer transition-soft"
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="block w-full text-[10px] truncate rounded px-1 py-0.5 mb-0.5 text-left cursor-pointer transition-soft"
                       title={`Open Kanban task: ${t.title}`}
                       style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
-                      onClick={(e) => { e.stopPropagation(); onOpenTask(t.id); }}>
+                      onClick={() => onOpenTask(t.id)}
+                      aria-label={`Open kanban task: ${t.title}`}
+                    >
                       {t.title}
-                    </div>
+                    </button>
                   ))}
                   {(dayBlocks.length + (kanbanByDate.get(ds) || []).length) > 3 && <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+ more</div>}
                 </div>
@@ -284,12 +340,17 @@ function WeekGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }
           return <div key={di} className="flex-1 min-w-[80px] px-1 py-1 border-l space-y-0.5" style={{ borderColor:'var(--border-color)' }}>
             {due.length === 0 && <div className="text-[9px] text-center" style={{ color:'var(--text-tertiary)' }}>—</div>}
             {due.slice(0,3).map((t) => (
-              <div key={t.id} className="text-[10px] truncate rounded px-1 py-0.5 cursor-pointer transition-soft"
+              <button
+                key={t.id}
+                type="button"
+                className="block w-full text-[10px] truncate rounded px-1 py-0.5 text-left cursor-pointer transition-soft"
                 title={`Open Kanban task: ${t.title}`}
                 style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
-                onClick={() => onOpenTask(t.id)}>
+                onClick={() => onOpenTask(t.id)}
+                aria-label={`Open kanban task: ${t.title}`}
+              >
                 {t.title}
-              </div>
+              </button>
             ))}
             {due.length > 3 && <div className="text-[9px]" style={{ color:'var(--text-tertiary)' }}>+{due.length-3} more</div>}
           </div>;
@@ -343,13 +404,17 @@ function DayGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }:
         <div className="flex flex-wrap gap-1.5 mb-2 p-2 rounded-lg" style={{ background: 'var(--bg-subtle)' }}>
           <span className="text-[10px] uppercase tracking-wide self-center" style={{ color: 'var(--text-tertiary)' }}>Due:</span>
           {due.map((t) => (
-            <span key={t.id}
+            <button
+              key={t.id}
+              type="button"
               className="text-[11px] rounded px-2 py-0.5 cursor-pointer transition-soft"
               title={`Open Kanban task: ${t.title}`}
               style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
-              onClick={() => onOpenTask(t.id)}>
+              onClick={() => onOpenTask(t.id)}
+              aria-label={`Open kanban task: ${t.title}`}
+            >
               {t.title}
-            </span>
+            </button>
           ))}
         </div>
       )}
@@ -368,11 +433,25 @@ function DayGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }:
                 </div>
               )}
               {hb.map((b) => (
-                <div key={b.id} className="rounded px-2 py-1 ml-1 mr-2 text-xs cursor-pointer hover:brightness-95" style={{ background: b.color+'25', borderLeft: `3px solid ${b.color}`, color: 'var(--text-primary)' }}
-                  onClick={b.id.startsWith(KANBAN_ID_PREFIX) ? () => onOpenTask(b.id.slice(KANBAN_ID_PREFIX.length)) : () => onBlockClick(b)}>
+                <button
+                  key={b.id}
+                  type="button"
+                  className="rounded px-2 py-1 ml-1 mr-2 text-xs cursor-pointer hover:brightness-95"
+                  style={{
+                    background: b.color+'25',
+                    border: 'none',
+                    borderLeft: `3px solid ${b.color}`,
+                    color: 'var(--text-primary)',
+                    textAlign: 'left',
+                    display: 'block',
+                    width: 'calc(100% - 12px)',
+                  }}
+                  onClick={b.id.startsWith(KANBAN_ID_PREFIX) ? () => onOpenTask(b.id.slice(KANBAN_ID_PREFIX.length)) : () => onBlockClick(b)}
+                  aria-label={`Open event: ${b.label}`}
+                >
                   <span className="font-medium">{b.label}</span>
                   <span className="ml-2" style={{ color:'var(--text-tertiary)', fontSize:10 }}>{fmtHr(b.startHour)} – {fmtHr(b.endHour)}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
