@@ -4,6 +4,7 @@ import { Plus, Calendar, Check } from 'lucide-react';
 import { usePrioritiesStore } from '../../stores/usePrioritiesStore';
 import { useKanbanStore } from '../../stores/useKanbanStore';
 import { formatDate, todayISO } from '../../lib/utils';
+import { Skeleton } from '../layout/Skeleton';
 
 const PRIORITY_COLORS: Record<number, string> = {
   1: 'var(--danger)',
@@ -103,7 +104,11 @@ export function PrioritiesDashboard() {
         )}
 
         {pLoading ? (
-          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Loading…</p>
+          <div className="space-y-2">
+            <Skeleton height={34} />
+            <Skeleton height={34} width="85%" />
+            <Skeleton height={34} width="70%" />
+          </div>
         ) : priorities.length === 0 ? (
           <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No priorities yet — add one above.</p>
         ) : (

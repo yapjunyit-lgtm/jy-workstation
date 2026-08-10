@@ -58,7 +58,7 @@ export function STARCard({ entry, onEdit, onDelete }: STARCardProps) {
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{entry.result}</p>
           {entry.quantitativeMetrics && (
             <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--success)' }}>
-              📊 {entry.quantitativeMetrics}
+              {entry.quantitativeMetrics}
             </p>
           )}
         </div>
@@ -67,7 +67,7 @@ export function STARCard({ entry, onEdit, onDelete }: STARCardProps) {
       {/* Auto-generated resume bullet */}
       <div className="rounded-lg p-3" style={{ background: 'var(--accent-soft)' }}>
         <span className="text-[10px] font-medium uppercase block mb-1" style={{ color: 'var(--accent)' }}>
-          📝 Resume Bullet
+          Resume Bullet
         </span>
         <p className="text-sm" style={{ color: 'var(--text-primary)', fontStyle: 'italic' }}>
           {summary}

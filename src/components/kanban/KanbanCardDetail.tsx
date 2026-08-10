@@ -57,8 +57,8 @@ export function KanbanCardDetail({ task, onClose }: KanbanCardDetailProps) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="card-static w-full max-w-lg mx-4 shadow-lg animate-scaleIn overflow-y-auto"
-        style={{ maxHeight: '80vh', animation: 'scaleIn 250ms ease-out' }}
+        className="card-static w-full max-w-lg mx-4 shadow-lg modal-enter overflow-y-auto"
+        style={{ maxHeight: '80vh', animation: 'scaleIn 260ms var(--ease-out-quint)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

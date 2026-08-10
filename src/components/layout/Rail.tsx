@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { LayoutDashboard, Kanban, BookOpen, Bot, TrendingUp, CalendarDays, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -10,86 +11,117 @@ const NAV_ITEMS = [
   { to: '/calendar', icon: CalendarDays,    label: 'Calendar',  kbd: '6' },
 ];
 
+const SPRING = { type: 'spring', stiffness: 400, damping: 30, mass: 0.8 } as const;
+
 export function Rail() {
   const location = useLocation();
   const isActive = (to: string) => location.pathname === to || (to === '/' && location.pathname === '/');
 
   return (
     <aside
-      className="app-rail flex flex-col items-center border-r"
+      className="flex flex-col items-center border-r"
       style={{
-        width: 56,
-        background: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        padding: '12px 0',
-        gap: 4,
+        width: 64,
+        background: 'var(--bg-elevated)',
+        borderColor: 'var(--border)',
+        padding: '16px 0 12px',
+        gap: 2,
       }}
     >
-      {/* Logo */}
-      <div
-        className="rail-logo flex items-center justify-center rounded-lg mb-3"
+      {/* Brand mark */}
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center justify-center rounded-full mb-4"
         style={{
-          width: 32, height: 32,
-          background: 'linear-gradient(135deg, var(--accent), var(--info))',
-          color: 'white',
-          fontWeight: 700,
-          fontSize: 14,
+          width: 34,
+          height: 34,
+          background: 'var(--text)',
+          color: 'var(--bg)',
+          fontWeight: 800,
+          fontSize: 15,
+          fontFamily: 'var(--font-serif)',
+          fontStyle: 'italic',
+          boxShadow: 'var(--shadow-card-contact)',
         }}
+        title="JY Workstation"
       >
         J
-      </div>
+      </motion.div>
 
-      <div className="rail-divider" style={{ width: 24, height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
+      <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0 6px' }} />
 
       {/* Nav items */}
-      {NAV_ITEMS.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === '/'}
-          className="relative flex items-center justify-center rounded-lg transition-soft"
-          style={{
-            width: 36, height: 36,
-            color: isActive(item.to) ? 'var(--accent)' : 'var(--text-muted)',
-            background: isActive(item.to) ? 'var(--accent-soft)' : 'transparent',
-          }}
-          title={`${item.label} (⌘${item.kbd})`}
-        >
-          {isActive(item.to) && (
-            <div
+      <nav className="flex flex-col items-center gap-1">
+        {NAV_ITEMS.map((item, i) => {
+          const active = isActive(item.to);
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              className="relative flex items-center justify-center rounded-full"
               style={{
-                position: 'absolute',
-                left: 0, top: 8, bottom: 8,
-                width: 2,
-                background: 'var(--accent)',
-                borderRadius: '0 2px 2px 0',
+                width: 42,
+                height: 42,
+                color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
               }}
-            />
-          )}
-          <item.icon size={18} />
-          <span
-            className="rail-kbd absolute top-0.5 right-0.5"
-            style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-tertiary)' }}
-          >
-            {item.kbd}
-          </span>
-        </NavLink>
-      ))}
+              title={`${item.label} (⌘${item.kbd})`}
+            >
+              {active && (
+                <motion.span
+                  layoutId="rail-active-pill"
+                  transition={SPRING}
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: 'var(--text)', boxShadow: 'var(--shadow-card-contact)' }}
+                />
+              )}
+              <motion.span
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.05 * i }}
+                className="relative flex items-center justify-center"
+              >
+                <item.icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+              </motion.span>
+              <span
+                className="absolute top-0.5 right-0.5"
+                style={{
+                  fontSize: 8,
+                  fontFamily: 'var(--font-mono)',
+                  color: active ? 'color-mix(in oklch, var(--bg) 70%, transparent)' : 'var(--text-faint)',
+                }}
+              >
+                {item.kbd}
+              </span>
+            </NavLink>
+          );
+        })}
+      </nav>
 
-      <div className="rail-spacer flex-1" />
+      <div className="flex-1" />
 
       {/* Settings */}
       <NavLink
         to="/settings"
-        className="flex items-center justify-center rounded-lg transition-soft"
+        className="relative flex items-center justify-center rounded-full"
         style={{
-          width: 36, height: 36,
-          color: location.pathname === '/settings' ? 'var(--accent)' : 'var(--text-muted)',
-          background: location.pathname === '/settings' ? 'var(--accent-soft)' : 'transparent',
+          width: 42,
+          height: 42,
+          color: location.pathname === '/settings' ? 'var(--accent-fg)' : 'var(--text-muted)',
         }}
         title="Settings"
       >
-        <Settings size={18} />
+        {location.pathname === '/settings' && (
+          <motion.span
+            layoutId="rail-active-pill"
+            transition={SPRING}
+            className="absolute inset-0 rounded-full"
+            style={{ background: 'var(--text)', boxShadow: 'var(--shadow-card-contact)' }}
+          />
+        )}
+        <Settings size={18} strokeWidth={location.pathname === '/settings' ? 2.2 : 1.8} className="relative" />
       </NavLink>
     </aside>
   );

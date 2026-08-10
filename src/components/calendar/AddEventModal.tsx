@@ -5,12 +5,12 @@ import { useCalendarStore } from '../../stores/useCalendarStore';
 import { generateGoogleCalendarLink } from '../../lib/ics-parser';
 import type { BlockType } from '../../lib/types';
 
-const CATEGORIES: { type: BlockType; label: string; color: string; emoji: string }[] = [
-  { type: 'work-shift',   label: 'Work',     color: '#C9A96E', emoji: '💼' },
-  { type: 'study',        label: 'Study',    color: '#8A9FB8', emoji: '📚' },
-  { type: 'custom',       label: 'Personal', color: '#8B9D83', emoji: '🏠' },
-  { type: 'sat-shift',    label: 'Health',   color: '#C4887C', emoji: '🏃' },
-  { type: 'commute',      label: 'Travel',   color: '#D5CFC6', emoji: '✈️' },
+const CATEGORIES: { type: BlockType; label: string; color: string }[] = [
+  { type: 'work-shift',   label: 'Work',     color: '#C9A96E' },
+  { type: 'study',        label: 'Study',    color: '#8A9FB8' },
+  { type: 'custom',       label: 'Personal', color: '#8B9D83' },
+  { type: 'sat-shift',    label: 'Health',   color: '#C4887C' },
+  { type: 'commute',      label: 'Travel',   color: '#D5CFC6' },
 ];
 
 interface AddEventModalProps {
@@ -90,7 +90,7 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="card-static w-full max-w-md mx-4 shadow-xl animate-scaleIn space-y-4"
+        className="card-static w-full max-w-md mx-4 shadow-xl modal-enter space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -103,7 +103,7 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
 
         {added ? (
           <div className="text-center py-4 space-y-3">
-            <p className="text-sm" style={{ color: 'var(--success)' }}>✅ Added to workstation calendar</p>
+            <p className="text-sm" style={{ color: 'var(--success)' }}>Added to workstation calendar</p>
             <button onClick={handleAddGoogle} className="btn-sakura btn-secondary btn-sm flex items-center gap-1.5 mx-auto">
               <ExternalLink size={12} /> Also add to Google Calendar
             </button>
@@ -128,7 +128,7 @@ export function AddEventModal({ preselectedDate, onClose }: AddEventModalProps) 
                       borderColor: cat.color,
                     }}
                   >
-                    {cat.emoji} {cat.label}
+                    {cat.label}
                   </button>
                 ))}
               </div>

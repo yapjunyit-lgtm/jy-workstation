@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useKanbanStore } from '../stores/useKanbanStore';
 import { KanbanBoard } from '../components/kanban/KanbanBoard';
 import { CategoryFilter } from '../components/kanban/CategoryFilter';
+import { PageHeader } from '../components/layout/PageHeader';
+import { Skeleton } from '../components/layout/Skeleton';
 
 export function KanbanPage() {
   const { hydrate, loading } = useKanbanStore();
@@ -15,22 +17,21 @@ export function KanbanPage() {
 
   return (
     <div className="page-enter space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
-          📋 Kanban Board
-        </h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            Drag tasks between columns
-          </span>
-        </div>
-      </div>
+      <PageHeader eyebrow="Board" title="Kanban " accent="Board">
+        <span className="meta-label">Drag tasks between columns</span>
+      </PageHeader>
 
       <CategoryFilter />
 
       {loading ? (
-        <div className="card-static flex items-center justify-center h-40">
-          <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading board...</p>
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton height={20} width={120} />
+              <Skeleton height={90} />
+              <Skeleton height={90} width="92%" />
+            </div>
+          ))}
         </div>
       ) : (
         <KanbanBoard initialTaskId={initialTaskId} />

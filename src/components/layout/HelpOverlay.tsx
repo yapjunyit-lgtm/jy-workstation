@@ -37,7 +37,7 @@ export function HelpOverlay() {
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="card-static w-full max-w-sm mx-4 shadow-xl animate-scaleIn"
+        className="card-static w-full max-w-sm mx-4 shadow-xl modal-enter"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">

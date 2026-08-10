@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Send, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { Dots } from '../layout/Dots';
 import { runAssistant, type AssistantAction } from '../../lib/bridge';
 
 interface ChatMessage {
@@ -70,7 +71,7 @@ export function AIAssistantPanel() {
     } catch (err) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        text: `⚠ ${err instanceof Error ? err.message : String(err)}`,
+        text: `Error: ${err instanceof Error ? err.message : String(err)}`,
       }]);
     }
     setBusy(false);
@@ -83,7 +84,7 @@ export function AIAssistantPanel() {
       <div className="flex-1 overflow-y-auto space-y-3 p-4">
         {messages.length === 0 && !busy && (
           <div className="text-center py-10 space-y-3">
-            <div className="text-3xl">🤖</div>
+            <div className="text-3xl"></div>
             <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               JY Workstation Assistant
             </p>
@@ -138,7 +139,7 @@ export function AIAssistantPanel() {
         {busy && (
           <div className="flex justify-start">
             <div className="rounded-xl px-3.5 py-2.5 flex items-center gap-2" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-color)' }}>
-              <Loader2 size={13} className="animate-spin" style={{ color: 'var(--accent)' }} />
+              <Dots size={13} color="var(--accent)" />
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Assistant is thinking…</span>
             </div>
           </div>
@@ -172,7 +173,7 @@ export function AIAssistantPanel() {
           disabled={busy}
         />
         <button onClick={() => send()} disabled={busy || !input.trim()} className="btn-sakura btn-primary btn-sm">
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          {busy ? <Dots size={14} /> : <Send size={14} />}
         </button>
       </div>
       <div className="px-3 pb-2 flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>

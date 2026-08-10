@@ -5,6 +5,8 @@ import { useGCalStore } from '../stores/useGCalStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
 import { isBridgeReachable } from '../lib/cloud-sync';
 import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PillTabs } from '../components/layout/PillTabs';
 
 type SettingsTab = 'auth' | 'sync' | 'calendar' | 'cloud' | 'backup';
 
@@ -13,30 +15,19 @@ export function SettingsPage() {
 
   return (
     <div className="page-enter space-y-6">
-      <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>⚙️ Settings</h2>
+      <PageHeader eyebrow="Configuration" title="Workstation " accent="settings" />
 
-      <div className="settings-tabs flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
-        {([
+      <PillTabs
+        tabs={[
           { id: 'auth' as const, label: 'Auth' },
-          { id: 'sync' as const, label: 'Obsidian Sync' },
+          { id: 'sync' as const, label: 'Obsidian' },
           { id: 'calendar' as const, label: 'Calendar' },
           { id: 'cloud' as const, label: 'Local Sync' },
           { id: 'backup' as const, label: 'Backup' },
-        ]).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="px-4 py-2 text-sm transition-soft border-b-2 -mb-px"
-            style={{
-              color: tab === t.id ? 'var(--accent)' : 'var(--text-secondary)',
-              borderColor: tab === t.id ? 'var(--accent)' : 'transparent',
-              fontWeight: tab === t.id ? 450 : 400,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'auth' && <AuthTab />}
       {tab === 'sync' && <SyncTab />}
@@ -152,7 +143,7 @@ function SyncTab() {
       )}
 
       <button onClick={handleExport} disabled={isExporting} className="btn-sakura btn-primary btn-sm">
-        {isExporting ? 'Exporting...' : '📥 Export All as Markdown ZIP'}
+        {isExporting ? 'Exporting...' : 'Export All as Markdown ZIP'}
       </button>
 
       {config.lastExportAt && (
@@ -199,12 +190,12 @@ function BackupTab() {
         Export all your data (priorities, tasks, snippets, STAR entries, etc.) as a JSON file for backup or transfer.
       </p>
 
-      <button onClick={handleExport} className="btn-sakura btn-primary btn-sm">📦 Export Full Backup (JSON)</button>
+      <button onClick={handleExport} className="btn-sakura btn-primary btn-sm">Export Full Backup (JSON)</button>
 
       <hr style={{ borderColor: 'var(--border-color)' }} />
 
       <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Restore from Backup</h4>
-      <p className="text-xs" style={{ color: 'var(--danger)' }}>⚠ This will replace all current data.</p>
+      <p className="text-xs" style={{ color: 'var(--danger)' }}>This will replace all current data.</p>
       <input
         ref={fileRef}
         type="file"
@@ -270,22 +261,22 @@ function CloudTab() {
         <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Checking bridge...</p>
       ) : connected ? (
         <div className="p-3 rounded-lg space-y-3" style={{ background: '#E2EDE4' }}>
-          <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>✅ Connected to local SQLite (vault bridge)</p>
+          <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>Connected to local SQLite (vault bridge)</p>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             Data is stored on this machine at <code className="font-mono">server/workspace.db</code> — every browser
             hitting the bridge shares it. No cloud, no quota, no sign-in.
           </p>
           {stats && (
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              📊 {stats.local} local records · {stats.remote} database records
+              {stats.local} local records · {stats.remote} database records
             </p>
           )}
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handlePush} disabled={syncing} className="btn-sakura btn-primary btn-sm">
-              {syncing ? 'Syncing...' : '📤 Push to Database'}
+              {syncing ? 'Syncing...' : 'Push to Database'}
             </button>
             <button onClick={handlePull} disabled={syncing} className="btn-sakura btn-secondary btn-sm">
-              {syncing ? 'Syncing...' : '📥 Pull from Database'}
+              {syncing ? 'Syncing...' : 'Pull from Database'}
             </button>
             <button onClick={() => refresh()} className="btn-sakura btn-ghost btn-sm">Refresh</button>
           </div>
@@ -293,7 +284,7 @@ function CloudTab() {
         </div>
       ) : (
         <div className="p-3 rounded-lg space-y-2 text-xs" style={{ background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
-          <p className="font-medium" style={{ color: 'var(--text-primary)' }}>⚠ Bridge not reachable</p>
+          <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Bridge not reachable</p>
           <p>Start the local vault bridge to enable sync between browsers:</p>
           <pre className="font-mono p-2 rounded" style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>npm run bridge</pre>
           <p>(It normally runs automatically via launchd — see <code className="font-mono">com.jy.vault-bridge</code>.)</p>
@@ -323,7 +314,7 @@ function CalendarTab() {
 
       <div className="p-3 rounded-lg space-y-2" style={{ background: 'var(--bg-subtle)' }}>
         <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-          📋 How to get your ICS link:
+          How to get your ICS link:
         </p>
         <ol className="text-xs space-y-1" style={{ color: 'var(--text-secondary)', paddingLeft: 16 }}>
           <li>Open <a href="https://calendar.google.com/calendar/u/0/settings" target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Google Calendar Settings</a></li>
@@ -355,7 +346,7 @@ function CalendarTab() {
       {lastFetched && !loading && (
         <div className="space-y-2">
           <p className="text-xs" style={{ color: 'var(--success)' }}>
-            ✅ {events.length} events loaded · Last synced: {new Date(lastFetched).toLocaleTimeString()}
+            {events.length} events loaded · Last synced: {new Date(lastFetched).toLocaleTimeString()}
           </p>
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {events.slice(0, 5).map((e) => (

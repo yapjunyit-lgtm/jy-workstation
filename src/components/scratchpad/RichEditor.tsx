@@ -87,7 +87,7 @@ export function RichEditor() {
           style={{ color: 'var(--text-muted)', border: 'none', background: 'transparent', cursor: 'pointer' }}
           title="Export to Obsidian"
         >
-          📓
+          
         </button>
       </div>
 

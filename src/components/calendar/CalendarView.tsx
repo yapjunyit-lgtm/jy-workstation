@@ -11,6 +11,7 @@ import { useCalendarStore } from '../../stores/useCalendarStore';
 import { useGCalStore } from '../../stores/useGCalStore';
 import { useKanbanStore } from '../../stores/useKanbanStore';
 import { TimeBlock } from './TimeBlock';
+import { PillTabs } from '../layout/PillTabs';
 import { AddEventModal } from './AddEventModal';
 import { EditEventModal } from './EditEventModal';
 import type { TimeBlock as TimeBlockType } from '../../lib/types';
@@ -72,7 +73,7 @@ export function CalendarView() {
           startHour: START_HOUR,
           endHour: END_HOUR,
           type: 'custom' as const,
-          label: `📋 ${t.title}`,
+          label: `${t.title}`,
           color: KANBAN_COLORS[t.category] || '#8B9D83',
         })),
     [kanbanTasks]
@@ -133,14 +134,16 @@ export function CalendarView() {
             <Plus size={12} /> Add Event
           </button>
         </div>
-        <div className="flex items-center rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
-          {(['year','month','week','day'] as CalendarViewMode[]).map((m) => (
-            <button key={m} onClick={() => setViewMode(m)} className="text-xs px-3 py-1.5 transition-soft"
-              style={{ color: viewMode===m ? 'var(--text-primary)' : 'var(--text-muted)', background: viewMode===m ? 'var(--bg-subtle)' : 'transparent', fontWeight: viewMode===m ? 500 : 400 }}>
-              {m.charAt(0).toUpperCase()+m.slice(1)}
-            </button>
-          ))}
-        </div>
+        <PillTabs
+          tabs={[
+            { id: 'year' as const, label: 'Year' },
+            { id: 'month' as const, label: 'Month' },
+            { id: 'week' as const, label: 'Week' },
+            { id: 'day' as const, label: 'Day' },
+          ]}
+          value={viewMode}
+          onChange={setViewMode}
+        />
       </div>
 
       {viewMode==='year' && <YearGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('month'); }} />}
@@ -233,7 +236,7 @@ function MonthGrid({ cursorDate, blocks, kanbanByDate, onSelect, onOpenTask }: {
                       title={`Open Kanban task: ${t.title}`}
                       style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
                       onClick={(e) => { e.stopPropagation(); onOpenTask(t.id); }}>
-                      📋 {t.title}
+                      {t.title}
                     </div>
                   ))}
                   {(dayBlocks.length + (kanbanByDate.get(ds) || []).length) > 3 && <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+ more</div>}
@@ -285,7 +288,7 @@ function WeekGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }
                 title={`Open Kanban task: ${t.title}`}
                 style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
                 onClick={() => onOpenTask(t.id)}>
-                📋 {t.title}
+                {t.title}
               </div>
             ))}
             {due.length > 3 && <div className="text-[9px]" style={{ color:'var(--text-tertiary)' }}>+{due.length-3} more</div>}
@@ -345,7 +348,7 @@ function DayGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }:
               title={`Open Kanban task: ${t.title}`}
               style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
               onClick={() => onOpenTask(t.id)}>
-              📋 {t.title}
+              {t.title}
             </span>
           ))}
         </div>

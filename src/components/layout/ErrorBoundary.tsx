@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           <div className="card-static max-w-md w-full space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-xl">⚠️</span>
+              <span className="text-xl">!</span>
               <h2 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 Something went wrong
               </h2>
@@ -69,7 +69,7 @@ export function installGlobalErrorReporter(): void {
   const show = (msg: string) => {
     const el = document.getElementById('jy-global-error');
     if (el) {
-      el.textContent = `⚠ ${msg}`;
+      el.textContent = `! ${msg}`;
       el.style.display = 'block';
     }
   };

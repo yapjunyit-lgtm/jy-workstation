@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Bot, Play, RefreshCw, Terminal, FilePlus2, HeartPulse, ClipboardList,
-  Trash2, ExternalLink, Loader2, Clock, GitCommitHorizontal,
+  Trash2, ExternalLink, Clock, GitCommitHorizontal,
 } from 'lucide-react';
 import {
   BRIDGE_URL, getStatus, runAction, type BridgeEvent, type VaultStatus, type LedgerEntry,
 } from '../lib/bridge';
 import { ObsidianURI } from '../lib/obsidian-uri';
 import { AIAssistantPanel } from '../components/ai/AIAssistantPanel';
+import { Dots } from '../components/layout/Dots';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PillTabs } from '../components/layout/PillTabs';
 
 const VAULT_NAME = 'JY_Vault';
 
@@ -100,10 +103,9 @@ export function AIControlPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>🤖 AI Assistant</h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Insights about your workstation + make changes — powered by Codex via your local bridge.
-          </p>
+          <PageHeader eyebrow="Codex" title="AI " accent="assistant">
+            <span className="meta-label">Insights + changes on your local data</span>
+          </PageHeader>
         </div>
         <div className="flex items-center gap-2">
           <span className={`badge ${bridgeOk ? 'badge-success' : bridgeOk === null ? 'badge-neutral' : 'badge-danger'}`}>
@@ -125,25 +127,14 @@ export function AIControlPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
-        {([
-          { id: 'assistant' as const, label: '💬 Assistant' },
-          { id: 'vault' as const, label: '🗂️ Vault Control' },
-        ]).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="px-4 py-2 text-sm transition-soft border-b-2 -mb-px"
-            style={{
-              color: tab === t.id ? 'var(--accent)' : 'var(--text-secondary)',
-              borderColor: tab === t.id ? 'var(--accent)' : 'transparent',
-              fontWeight: tab === t.id ? 500 : 400,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <PillTabs
+        tabs={[
+          { id: 'assistant' as const, label: 'Assistant' },
+          { id: 'vault' as const, label: 'Vault Control' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'assistant' && <AIAssistantPanel />}
 
@@ -214,7 +205,7 @@ export function AIControlPage() {
             onClick={() => handleAction('log-work', { project: project.trim() })}
             title="Log today's work for a project"
           >
-            {running === 'log-work' ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+            {running === 'log-work' ? <Dots size={14} /> : <Play size={15} />}
             Log Work
           </button>
         </div>
@@ -244,14 +235,14 @@ export function AIControlPage() {
             disabled={!!running || !customPrompt.trim()}
             onClick={() => handleAction('custom', { prompt: customPrompt.trim() })}
           >
-            {running === 'custom' ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+            {running === 'custom' ? <Dots size={14} /> : <Play size={15} />}
             Run
           </button>
         </div>
 
         {running && (
           <p className="text-xs" style={{ color: 'var(--info)' }}>
-            <Loader2 size={12} className="inline animate-spin mr-1" />
+            <Dots size={12} />
             Running: {runningLabel} — watch the console below.
           </p>
         )}
@@ -422,7 +413,7 @@ function ActionButton(props: {
       disabled={props.disabled}
       onClick={props.onClick}
     >
-      {props.running ? <Loader2 size={15} className="animate-spin" /> : props.icon}
+      {props.running ? <Dots size={14} /> : props.icon}
       {props.label}
     </button>
   );

@@ -9,9 +9,10 @@ const PAGE_TITLES: Record<string, [string, string]> = {
   '/':         ['Today', 'Daily command center'],
   '/kanban':   ['Kanban', 'Tasks across lifecycle'],
   '/vault':    ['Vault', 'Prompts, data, security'],
+  '/ai':       ['AI Assistant', 'Codex on your data'],
   '/impact':   ['Impact', 'Career building tracker'],
   '/calendar': ['Calendar', 'Work & study balance'],
-  '/settings': ['Settings', 'Preferences & backup'],
+  '/settings': ['Settings', 'Preferences & sync'],
 };
 
 export function TopBar() {
@@ -40,36 +41,37 @@ export function TopBar() {
 
   return (
     <header
-      className="app-topbar flex items-center border-b gap-4"
+      className="flex items-center gap-4"
       style={{
-        height: 52,
-        background: 'var(--bg-root)',
-        borderColor: 'var(--border-color)',
-        padding: '0 24px',
+        height: 56,
+        background: 'color-mix(in oklch, var(--bg-elevated) 70%, transparent)',
+        borderBottom: '1px solid var(--border)',
+        padding: '0 28px',
       }}
     >
-      {/* Title */}
-      <div className="flex items-baseline gap-2 flex-shrink-0">
-        <span className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+      {/* Title — sans + mono eyebrow */}
+      <div className="flex items-baseline gap-3 flex-shrink-0">
+        <span className="text-[17px] font-bold tracking-tight" style={{ color: 'var(--text)' }}>
           {title}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</span>
+        <span className="meta-label hidden md:inline">{subtitle}</span>
       </div>
 
       <div className="flex-1" />
 
       {/* Shift + date */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{dateStr}</span>
+      <div className="flex items-center gap-2.5 flex-shrink-0">
+        <span className="meta-label hidden lg:inline">{dateStr}</span>
         <ShiftIndicator />
       </div>
 
       {/* Search hint */}
       <div
-        className="topbar-search flex items-center gap-2 rounded px-2.5 py-1.5 border text-xs flex-shrink-0"
+        className="hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5 text-xs flex-shrink-0"
         style={{
-          background: 'var(--bg-surface)',
-          borderColor: 'var(--border-color)',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-card-contact)',
           color: 'var(--text-muted)',
           minWidth: 200,
         }}
@@ -77,12 +79,8 @@ export function TopBar() {
         <Search size={13} />
         <span className="flex-1">Quick search...</span>
         <kbd
-          className="font-mono text-[10px] px-1.5 py-0.5 rounded border"
-          style={{
-            background: 'var(--bg-subtle)',
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-tertiary)',
-          }}
+          className="font-mono text-[10px] px-1.5 py-0.5 rounded-full"
+          style={{ background: 'var(--bg-subtle)', color: 'var(--text-faint)' }}
         >
           ⌘K
         </kbd>
@@ -90,25 +88,26 @@ export function TopBar() {
 
       {/* Cloud sync status */}
       <div
-        className="flex items-center gap-1.5 rounded-full px-2.5 py-1 border text-xs flex-shrink-0 transition-soft"
+        className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs flex-shrink-0"
         title={bridgeConnected ? 'Local SQLite sync connected — vault bridge reachable' : 'Local sync off — start the bridge: npm run bridge'}
         style={{
-          background: bridgeConnected ? '#E2EDE4' : 'var(--bg-surface)',
-          borderColor: bridgeConnected ? 'var(--success)' : 'var(--border-color)',
-          color: bridgeConnected ? 'var(--success)' : 'var(--text-tertiary)',
+          background: bridgeConnected ? 'oklch(94% 0.035 150)' : 'var(--bg-elevated)',
+          border: '1px solid ' + (bridgeConnected ? 'var(--success)' : 'var(--border)'),
+          color: bridgeConnected ? 'var(--success)' : 'var(--text-faint)',
         }}
       >
         <Cloud size={12} />
-        <span>{bridgeConnected ? 'local db' : 'sync off'}</span>
+        <span className="hidden sm:inline">{bridgeConnected ? 'local db' : 'sync off'}</span>
       </div>
 
       {/* Mini timer */}
       <button
         onClick={toggleTimer}
-        className="topbar-mini-timer flex items-center gap-1.5 rounded px-2.5 py-1.5 border font-mono text-xs flex-shrink-0 transition-soft"
+        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-xs flex-shrink-0"
         style={{
-          background: 'var(--bg-surface)',
-          borderColor: isRunning ? 'var(--accent)' : 'var(--border-color)',
+          background: 'var(--bg-elevated)',
+          border: '1px solid ' + (isRunning ? 'var(--accent)' : 'var(--border)'),
+          boxShadow: 'var(--shadow-card-contact)',
           color: isRunning ? 'var(--accent)' : 'var(--text-muted)',
         }}
         title="Toggle Pomodoro timer"

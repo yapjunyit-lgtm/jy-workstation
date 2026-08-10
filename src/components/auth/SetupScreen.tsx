@@ -27,7 +27,7 @@ export function SetupScreen() {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-root)' }}>
+    <div className="min-h-[100dvh] flex items-center justify-center" style={{ background: 'var(--bg-root)' }}>
       <div className="w-full max-w-sm mx-auto px-6">
         <div className="card-static text-center">
           <div className="text-4xl mb-4">🔐</div>

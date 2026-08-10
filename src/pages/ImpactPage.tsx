@@ -5,6 +5,7 @@ import { STARCard } from '../components/impact/STARCard';
 import { SOPTruacker } from '../components/impact/SOPTruacker';
 import { SyncAgendaGenerator } from '../components/impact/SyncAgendaGenerator';
 import type { STAREntry } from '../lib/types';
+import { PageHeader } from '../components/layout/PageHeader';
 
 export function ImpactPage() {
   const { starEntries, hydrate, loading, updateStar, removeStar } = useImpactStore();
@@ -26,9 +27,7 @@ export function ImpactPage() {
 
   return (
     <div className="page-enter space-y-8">
-      <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
-        📈 Impact Log
-      </h2>
+      <PageHeader eyebrow="Career" title="Impact " accent="Log" />
 
       {/* Section 1: 1:1 Agenda */}
       <div className="card-static">
@@ -42,7 +41,7 @@ export function ImpactPage() {
         {/* Edit modal */}
         {editingId && (
           <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]" style={{ background: 'rgba(59, 56, 51, 0.15)' }} onClick={(e) => { if (e.target === e.currentTarget) setEditingId(null); }}>
-            <div className="card-static w-full max-w-lg mx-4 shadow-lg animate-scaleIn space-y-3" style={{ maxHeight: '80vh', overflow: 'auto' }}>
+            <div className="card-static w-full max-w-lg mx-4 shadow-lg modal-enter space-y-3" style={{ maxHeight: '80vh', overflow: 'auto' }}>
               <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Edit STAR Entry</h3>
               <input value={editForm.situation || ''} onChange={(e) => setEditForm({ ...editForm, situation: e.target.value })} placeholder="Situation" className="input-sakura text-sm" />
               <input value={editForm.task || ''} onChange={(e) => setEditForm({ ...editForm, task: e.target.value })} placeholder="Task" className="input-sakura text-sm" />

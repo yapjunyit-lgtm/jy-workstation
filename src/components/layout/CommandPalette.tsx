@@ -129,7 +129,7 @@ export function CommandPalette() {
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="card-static w-full max-w-lg mx-4 shadow-xl animate-scaleIn"
+        className="card-static w-full max-w-lg mx-4 shadow-xl modal-enter"
         style={{ padding: 0, overflow: 'hidden' }}
         onClick={(e) => e.stopPropagation()}
       >

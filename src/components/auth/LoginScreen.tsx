@@ -13,10 +13,10 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-root)' }}>
+    <div className="min-h-[100dvh] flex items-center justify-center" style={{ background: 'var(--bg-root)' }}>
       <div className="w-full max-w-sm mx-auto px-6">
         <div className="card-static text-center">
-          <div className="text-4xl mb-4">🌿</div>
+          <div className="mx-auto mb-4 grid place-items-center rounded-full" style={{ width: 44, height: 44, background: "var(--text)", color: "var(--bg)", fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: 22, fontWeight: 600 }}>J</div>
           <h1 className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
             JY Workstation
           </h1>

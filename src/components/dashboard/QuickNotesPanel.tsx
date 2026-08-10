@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Lightbulb, X } from 'lucide-react';
 import { useQuickNotesStore } from '../../stores/useQuickNotesStore';
 import { formatTime } from '../../lib/utils';
+import { Skeleton } from '../layout/Skeleton';
 
 export function QuickNotesPanel() {
   const { notes, date, loading, hydrate, add, remove } = useQuickNotesStore();
@@ -38,7 +39,10 @@ export function QuickNotesPanel() {
       />
 
       {loading ? (
-        <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Loading…</p>
+        <div className="space-y-1.5">
+          <Skeleton height={28} />
+          <Skeleton height={28} width="80%" />
+        </div>
       ) : notes.length === 0 ? (
         <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
           No notes yet — jot anything down, it syncs to every device.

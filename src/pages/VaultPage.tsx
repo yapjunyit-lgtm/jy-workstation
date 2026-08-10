@@ -4,6 +4,9 @@ import { seedData } from '../lib/seed';
 import { SnippetLibrary } from '../components/vault/SnippetLibrary';
 import { DataRegistry } from '../components/vault/DataRegistry';
 import { CyberMaskChecklist } from '../components/vault/CyberMaskChecklist';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PillTabs } from '../components/layout/PillTabs';
+import { Skeleton } from '../components/layout/Skeleton';
 
 type VaultTab = 'snippets' | 'registry' | 'checklist';
 
@@ -16,38 +19,28 @@ export function VaultPage() {
     seedData(); // Seeds snippets + checklist if DB is empty
   }, []);
 
-  const tabs: { id: VaultTab; label: string; emoji: string }[] = [
-    { id: 'snippets', label: 'Snippets', emoji: '📋' },
-    { id: 'registry', label: 'Data Registry', emoji: '🗄️' },
-    { id: 'checklist', label: 'Cybersecurity', emoji: '🔒' },
+  const tabs: { id: VaultTab; label: string }[] = [
+    { id: 'snippets', label: 'Snippets' },
+    { id: 'registry', label: 'Data Registry' },
+    { id: 'checklist', label: 'Cybersecurity' },
   ];
 
   return (
     <div className="page-enter space-y-6">
-      <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
-        📚 Technical Vault
-      </h2>
+      <PageHeader eyebrow="Library" title="Technical " accent="Vault" />
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b pb-0" style={{ borderColor: 'var(--border-color)' }}>
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="px-4 py-2 text-sm transition-soft border-b-2 -mb-px"
-            style={{
-              color: tab === t.id ? 'var(--accent)' : 'var(--text-secondary)',
-              borderColor: tab === t.id ? 'var(--accent)' : 'transparent',
-              fontWeight: tab === t.id ? 450 : 400,
-            }}
-          >
-            {t.emoji} {t.label}
-          </button>
-        ))}
-      </div>
+      <PillTabs tabs={tabs.map(({ id, label }) => ({ id, label }))} value={tab} onChange={setTab} />
 
       {loading ? (
-        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading vault...</p>
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton height={18} width={160} />
+              <Skeleton height={90} />
+            </div>
+          ))}
+        </div>
       ) : (
         <>
           {tab === 'snippets' && <SnippetLibrary />}

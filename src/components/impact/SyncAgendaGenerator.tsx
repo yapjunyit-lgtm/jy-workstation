@@ -23,19 +23,19 @@ export function SyncAgendaGenerator() {
     const items: string[] = [];
 
     if (agenda.completedThisWeek.length > 0) {
-      items.push('## ✅ Completed');
+      items.push('## Completed');
       agenda.completedThisWeek.forEach((t) => items.push(`- [${t.category}] ${t.title}`));
       items.push('');
     }
 
     if (agenda.inProgress.length > 0) {
-      items.push('## 🔄 In Progress');
+      items.push('## In Progress');
       agenda.inProgress.forEach((t) => items.push(`- [${t.category}] ${t.title}`));
       items.push('');
     }
 
     if (agenda.openBlockers.length > 0) {
-      items.push('## 🚧 Blockers');
+      items.push('## Blockers');
       agenda.openBlockers.forEach((b) => items.push(`- [${b.status}] ${b.title}`));
       items.push('');
     }
@@ -67,7 +67,7 @@ export function SyncAgendaGenerator() {
           {agenda.completedThisWeek.length > 0 && (
             <div>
               <h4 className="text-xs font-medium mb-1" style={{ color: 'var(--success)' }}>
-                ✅ Completed ({agenda.completedThisWeek.length})
+                Completed ({agenda.completedThisWeek.length})
               </h4>
               <ul className="space-y-0.5">
                 {agenda.completedThisWeek.map((t) => (
@@ -83,7 +83,7 @@ export function SyncAgendaGenerator() {
           {agenda.inProgress.length > 0 && (
             <div>
               <h4 className="text-xs font-medium mb-1" style={{ color: 'var(--info)' }}>
-                🔄 In Progress ({agenda.inProgress.length})
+                In Progress ({agenda.inProgress.length})
               </h4>
               <ul className="space-y-0.5">
                 {agenda.inProgress.map((t) => (
@@ -99,7 +99,7 @@ export function SyncAgendaGenerator() {
           {agenda.openBlockers.length > 0 && (
             <div>
               <h4 className="text-xs font-medium mb-1" style={{ color: 'var(--danger)' }}>
-                🚧 Blockers ({agenda.openBlockers.length})
+                Blockers ({agenda.openBlockers.length})
               </h4>
               <ul className="space-y-0.5">
                 {agenda.openBlockers.map((b) => (

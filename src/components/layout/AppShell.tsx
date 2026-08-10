@@ -6,12 +6,12 @@ import { HelpOverlay } from './HelpOverlay';
 
 export function AppShell() {
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-root)' }}>
+    <div className="grain-overlay flex" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <Rail />
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
         <TopBar />
-        <main className="app-main flex-1 overflow-y-auto" style={{ padding: '24px 32px 48px' }}>
-          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <main className="flex-1" style={{ padding: '28px 36px 64px' }}>
+          <div className="mx-auto" style={{ maxWidth: 1400 }}>
             <Outlet />
           </div>
         </main>

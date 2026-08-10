@@ -5,22 +5,26 @@ import { RichEditor } from '../components/scratchpad/RichEditor';
 import { QuickNotesPanel } from '../components/dashboard/QuickNotesPanel';
 
 export function DashboardPage() {
+  const today = new Date();
+  const dayNum = today.getDate();
+
   return (
-    <div className="page-enter space-y-6">
-      {/* Big date header */}
-      <div className="flex items-baseline justify-between">
-        <div>
-          <div className="big-date text-[56px] font-bold leading-none tracking-[-0.04em]" style={{ color: 'var(--text-primary)' }}>
-            {new Date().getDate()}
-          </div>
-          <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </div>
-        </div>
+    <div className="page-enter space-y-8">
+      {/* Hero header — typography led */}
+      <div className="t-reveal is-in">
+        <span className="meta-label">
+          {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long' })}
+        </span>
+        <h2 className="mt-1 text-[42px] font-bold tracking-[-0.02em] leading-[1.02]" style={{ color: 'var(--text)' }}>
+          Your <span className="serif-accent" style={{ color: 'var(--accent)' }}>day</span>, {dayNum}.
+        </h2>
+        <p className="mt-2 text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>
+          Priorities, tasks, and a scratchpad — one calm surface to run your shift.
+        </p>
       </div>
 
       {/* Main grid: priorities + blockers (left) | pomodoro (right) */}
-      <div className="dashboard-grid grid gap-6" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
+      <div className="t-stagger is-in grid gap-6" style={{ gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr)' }}>
         <div className="space-y-6">
           <PrioritiesDashboard />
           <BlockerTracker />

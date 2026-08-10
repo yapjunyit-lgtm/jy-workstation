@@ -74,7 +74,7 @@ function AppContent() {
   if (!initialized || isLoading) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center"
+        className="min-h-[100dvh] flex items-center justify-center"
         style={{ background: 'var(--bg-root)' }}
       >
         <div className="text-center">

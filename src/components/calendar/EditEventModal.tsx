@@ -25,7 +25,7 @@ export function EditEventModal({ block, onClose }: EditEventModalProps) {
       style={{ background: 'rgba(59, 56, 51, 0.15)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="card-static w-full max-w-sm mx-4 shadow-xl animate-scaleIn space-y-3" onClick={(e) => e.stopPropagation()}>
+      <div className="card-static w-full max-w-sm mx-4 shadow-xl modal-enter space-y-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Edit Event</h3>
           <div className="flex items-center gap-1">

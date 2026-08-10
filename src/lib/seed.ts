@@ -61,7 +61,7 @@ const SEED_SNIPPETS: Omit<Snippet, 'id' | 'createdAt' | 'updatedAt'>[] = [
   },
   {
     title: 'Vectorize Loops with NumPy',
-    content: `# ❌ Slow: Python loop\nresult = []\nfor i in range(len(data)):\n    if data[i] > threshold:\n        result.append(data[i] * 2)\n\n# ✅ Fast: NumPy vectorized\nimport numpy as np\narr = np.array(data)\nresult = np.where(arr > threshold, arr * 2, arr)`,
+    content: `# ❌ Slow: Python loop\nresult = []\nfor i in range(len(data)):\n    if data[i] > threshold:\n        result.append(data[i] * 2)\n\n# Fast: NumPy vectorized\nimport numpy as np\narr = np.array(data)\nresult = np.where(arr > threshold, arr * 2, arr)`,
     category: 'code-optimization',
     tags: ['numpy', 'vectorization', 'performance'],
     isFavorite: false,
@@ -75,7 +75,7 @@ const SEED_SNIPPETS: Omit<Snippet, 'id' | 'createdAt' | 'updatedAt'>[] = [
   },
   {
     title: 'Pandas itertuples() vs iterrows()',
-    content: `# ❌ Slow: iterrows() creates a Series per row\nfor idx, row in df.iterrows():\n    process(row['col1'], row['col2'])\n\n# ✅ 100x faster: itertuples() returns named tuples\nfor row in df.itertuples():\n    process(row.col1, row.col2)`,
+    content: `# ❌ Slow: iterrows() creates a Series per row\nfor idx, row in df.iterrows():\n    process(row['col1'], row['col2'])\n\n# 100x faster: itertuples() returns named tuples\nfor row in df.itertuples():\n    process(row.col1, row.col2)`,
     category: 'code-optimization',
     tags: ['pandas', 'performance', 'iteration'],
     isFavorite: false,
