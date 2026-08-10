@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { db } from '../lib/db';
 import { generateId } from '../lib/utils';
 import type { Snippet, DataSource, ChecklistItem } from '../lib/types';
+import { registerStoreRefresh } from '../lib/store-refresh';
 
 interface VaultState {
   snippets: Snippet[];
@@ -9,7 +10,7 @@ interface VaultState {
   checklist: ChecklistItem[];
   loading: boolean;
 
-  hydrate: () => Promise<void>;
+  hydrate: (silent?: boolean) => Promise<void>;
   addSnippet: (s: Partial<Snippet>) => Promise<void>;
   updateSnippet: (id: string, patch: Partial<Snippet>) => Promise<void>;
   removeSnippet: (id: string) => Promise<void>;
@@ -26,8 +27,8 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   checklist: [],
   loading: false,
 
-  hydrate: async () => {
-    set({ loading: true });
+  hydrate: async (silent) => {
+    if (!silent) set({ loading: true });
     try {
       const [snippets, dataSources, checklist] = await Promise.all([
         db.snippets.toArray().then(arr => arr.sort((a, b) => b.createdAt - a.createdAt)),
@@ -105,3 +106,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     set((s) => ({ checklist: s.checklist.map((c) => ({ ...c, checked: false })) }));
   },
 }));
+
+registerStoreRefresh('snippets', () => { useVaultStore.getState().hydrate(true); });
+registerStoreRefresh('dataSources', () => { useVaultStore.getState().hydrate(true); });
+registerStoreRefresh('checklistItems', () => { useVaultStore.getState().hydrate(true); });

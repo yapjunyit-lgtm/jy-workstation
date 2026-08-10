@@ -3,13 +3,14 @@ import { db } from '../lib/db';
 import { generateId, todayISO } from '../lib/utils';
 import type { TimeBlock, BlockType } from '../lib/types';
 import { BLOCK_COLORS } from '../lib/constants';
+import { registerStoreRefresh } from '../lib/store-refresh';
 
 interface CalendarState {
   blocks: TimeBlock[];
   currentWeekStart: string;
   loading: boolean;
 
-  hydrate: () => Promise<void>;
+  hydrate: (silent?: boolean) => Promise<void>;
   addBlock: (date: string, startHour: number, endHour: number, type: BlockType, label?: string) => Promise<void>;
   removeBlock: (id: string) => Promise<void>;
 }
@@ -19,8 +20,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
   currentWeekStart: todayISO(),
   loading: false,
 
-  hydrate: async () => {
-    set({ loading: true });
+  hydrate: async (silent) => {
+    if (!silent) set({ loading: true });
     const blocks = await db.timeBlocks.toArray();
     set({ blocks, loading: false });
   },
@@ -44,3 +45,5 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     set((s) => ({ blocks: s.blocks.filter((b) => b.id !== id) }));
   },
 }));
+
+registerStoreRefresh('timeBlocks', () => { useCalendarStore.getState().hydrate(true); });

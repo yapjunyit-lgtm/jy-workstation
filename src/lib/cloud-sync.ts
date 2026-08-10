@@ -10,6 +10,7 @@
  *   email/password for multi-device access).
  */
 import { db } from './db';
+import { notifyStoreRefresh } from './store-refresh';
 import {
   getFirestoreDB, getFirebaseAuth, isFirebaseConfigured,
 } from './firebase';
@@ -95,6 +96,7 @@ export async function pullAllFromCloud(): Promise<CountMap> {
         if (!cloudIds.has(rec.id)) await db.table(table).delete(rec.id);
       }
       results[table] = cloudIds.size;
+      notifyStoreRefresh(table); // cloud data changed → stores must re-read
     } catch {
       results[table] = 0;
     }
@@ -144,18 +146,28 @@ export async function startRealtimeSync(): Promise<void> {
     const col = collection(firestore, userPath(table));
     return onSnapshot(col, (snap) => {
       const localTable = db.table(table);
+      const ops: Promise<unknown>[] = [];
+
       snap.docChanges().forEach((change) => {
         const data = change.doc.data();
         if (data.deleted || change.type === 'removed') {
-          localTable.delete(change.doc.id).catch(() => {});
+          ops.push(localTable.delete(change.doc.id).catch(() => {}));
           return;
         }
-        localTable.get(change.doc.id).then((existing) => {
-          const ex = existing as Record<string, unknown> | undefined;
-          if (ex && (ex.updatedAt ?? 0) > (data.updatedAt ?? 0)) return; // local newer
-          return localTable.put({ ...data, id: change.doc.id } as never);
-        }).catch(() => {});
+        ops.push(
+          localTable.get(change.doc.id).then((existing) => {
+            const ex = existing as Record<string, unknown> | undefined;
+            if (ex && (ex.updatedAt ?? 0) > (data.updatedAt ?? 0)) return; // local newer
+            return localTable.put({ ...data, id: change.doc.id } as never);
+          }).catch(() => {})
+        );
       });
+
+      // Once every cloud write has landed in Dexie, tell the UI stores
+      // to re-read so live cross-device changes appear immediately.
+      Promise.all(ops)
+        .then(() => notifyStoreRefresh(table))
+        .catch(() => {});
     }, () => { /* transient — will retry on reconnect */ });
   });
 }

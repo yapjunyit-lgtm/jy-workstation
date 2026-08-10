@@ -2,12 +2,13 @@ import { create } from 'zustand';
 import { db } from '../lib/db';
 import { generateId, todayISO } from '../lib/utils';
 import type { ScratchNote } from '../lib/types';
+import { registerStoreRefresh } from '../lib/store-refresh';
 
 interface ScratchpadState {
   note: ScratchNote | null;
   loading: boolean;
 
-  loadToday: () => Promise<void>;
+  loadToday: (silent?: boolean) => Promise<void>;
   save: (content: string, plainText: string) => Promise<void>;
 }
 
@@ -15,9 +16,9 @@ export const useScratchpadStore = create<ScratchpadState>((set, get) => ({
   note: null,
   loading: false,
 
-  loadToday: async () => {
+  loadToday: async (silent) => {
     const date = todayISO();
-    set({ loading: true });
+    if (!silent) set({ loading: true });
     let note = await db.scratchNotes.where('date').equals(date).first();
     if (!note) {
       note = {
@@ -40,3 +41,5 @@ export const useScratchpadStore = create<ScratchpadState>((set, get) => ({
     set({ note: updated });
   },
 }));
+
+registerStoreRefresh('scratchNotes', () => { useScratchpadStore.getState().loadToday(true); });

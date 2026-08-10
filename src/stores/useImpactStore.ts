@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import { db } from '../lib/db';
 import { generateId } from '../lib/utils';
 import type { STAREntry, SOPDocument, SOPStatus } from '../lib/types';
+import { registerStoreRefresh } from '../lib/store-refresh';
 
 interface ImpactState {
   starEntries: STAREntry[];
   sopDocuments: SOPDocument[];
   loading: boolean;
 
-  hydrate: () => Promise<void>;
+  hydrate: (silent?: boolean) => Promise<void>;
   addStar: (entry: Omit<STAREntry, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateStar: (id: string, patch: Partial<STAREntry>) => Promise<void>;
   removeStar: (id: string) => Promise<void>;
@@ -22,8 +23,8 @@ export const useImpactStore = create<ImpactState>((set) => ({
   sopDocuments: [],
   loading: false,
 
-  hydrate: async () => {
-    set({ loading: true });
+  hydrate: async (silent) => {
+    if (!silent) set({ loading: true });
     const [stars, sops] = await Promise.all([
       db.starEntries.toArray(),
       db.sopDocuments.toArray(),
@@ -70,3 +71,6 @@ export const useImpactStore = create<ImpactState>((set) => ({
     set((s) => ({ sopDocuments: s.sopDocuments.filter((d) => d.id !== id) }));
   },
 }));
+
+registerStoreRefresh('starEntries', () => { useImpactStore.getState().hydrate(true); });
+registerStoreRefresh('sopDocuments', () => { useImpactStore.getState().hydrate(true); });

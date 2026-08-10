@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import { db } from '../lib/db';
 import { generateId } from '../lib/utils';
 import type { KanbanTask, KanbanColumn, TaskCategory, Subtask } from '../lib/types';
+import { registerStoreRefresh } from '../lib/store-refresh';
 
 interface KanbanState {
   tasks: KanbanTask[];
   filterCategories: TaskCategory[];
   loading: boolean;
 
-  hydrate: () => Promise<void>;
+  hydrate: (silent?: boolean) => Promise<void>;
   setFilter: (categories: TaskCategory[]) => void;
   add: (task: Partial<KanbanTask>) => Promise<KanbanTask>;
   update: (id: string, patch: Partial<KanbanTask>) => Promise<void>;
@@ -24,8 +25,8 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   filterCategories: [],
   loading: false,
 
-  hydrate: async () => {
-    set({ loading: true });
+  hydrate: async (silent) => {
+    if (!silent) set({ loading: true });
     const tasks = await db.kanbanTasks.toArray();
     set({ tasks, loading: false });
   },
@@ -99,3 +100,5 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     return tasks.filter((t) => filterCategories.includes(t.category));
   },
 }));
+
+registerStoreRefresh('kanbanTasks', () => { useKanbanStore.getState().hydrate(true); });
