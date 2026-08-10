@@ -14,7 +14,7 @@ import { BRIDGE_URL, health } from './bridge';
 export const SYNC_TABLES = [
   'priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
   'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks',
-  'scratchNotes', 'quickNotes', 'syncConfig', 'appSettings',
+  'scratchNotes', 'quickNotes', 'projectInfo', 'syncConfig', 'appSettings',
 ] as const;
 
 export type SyncTableName = (typeof SYNC_TABLES)[number];

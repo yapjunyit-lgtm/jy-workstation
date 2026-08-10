@@ -159,6 +159,15 @@ export interface SyncConfig {
   lastExportAt: number | null;
 }
 
+// ── PROJECT INFO ──
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  updatedAt: number;
+}
+
 // ── APP SETTINGS ──
 export type Theme = 'light-sakura' | 'dark-sakura';
 
