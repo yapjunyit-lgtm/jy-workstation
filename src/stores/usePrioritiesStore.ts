@@ -11,6 +11,7 @@ interface PrioritiesState {
 
   setDate: (date: string) => void;
   hydrate: (date: string, silent?: boolean) => Promise<void>;
+  hydrateAll: (silent?: boolean) => Promise<void>;
   add: (title: string, rank: 1 | 2 | 3) => Promise<void>;
   toggle: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -30,6 +31,12 @@ export const usePrioritiesStore = create<PrioritiesState>((set, get) => ({
   hydrate: async (date, silent) => {
     if (!silent) set({ loading: true });
     const items = await db.priorities.where('date').equals(date).sortBy('rank');
+    set({ priorities: items, loading: false });
+  },
+
+  hydrateAll: async (silent) => {
+    if (!silent) set({ loading: true });
+    const items = await db.priorities.orderBy('createdAt').reverse().toArray().catch(() => []);
     set({ priorities: items, loading: false });
   },
 
@@ -83,4 +90,4 @@ export const usePrioritiesStore = create<PrioritiesState>((set, get) => ({
   },
 }));
 
-registerStoreRefresh('priorities', () => { const st = usePrioritiesStore.getState(); st.hydrate(st.date, true); });
+registerStoreRefresh('priorities', () => { usePrioritiesStore.getState().hydrateAll(true); });

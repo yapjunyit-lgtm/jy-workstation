@@ -1,4 +1,4 @@
-import { DailyPriorities } from '../components/dashboard/DailyPriorities';
+import { PrioritiesDashboard } from '../components/dashboard/PrioritiesDashboard';
 import { PomodoroTimer } from '../components/dashboard/PomodoroTimer';
 import { BlockerTracker } from '../components/dashboard/BlockerTracker';
 import { RichEditor } from '../components/scratchpad/RichEditor';
@@ -22,7 +22,7 @@ export function DashboardPage() {
       {/* Main grid: priorities + blockers (left) | pomodoro (right) */}
       <div className="dashboard-grid grid gap-6" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
         <div className="space-y-6">
-          <DailyPriorities />
+          <PrioritiesDashboard />
           <BlockerTracker />
         </div>
         <div className="space-y-6">
