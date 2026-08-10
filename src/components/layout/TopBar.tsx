@@ -44,6 +44,7 @@ export function TopBar() {
       className="flex items-center gap-4"
       style={{
         height: 56,
+        flexShrink: 0,
         background: 'color-mix(in oklch, var(--bg-elevated) 70%, transparent)',
         borderBottom: '1px solid var(--border)',
         padding: '0 28px',

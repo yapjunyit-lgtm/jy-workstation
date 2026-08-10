@@ -22,6 +22,7 @@ export function Rail() {
       className="flex flex-col items-center border-r"
       style={{
         width: 64,
+        flexShrink: 0,
         background: 'var(--bg-elevated)',
         borderColor: 'var(--border)',
         padding: '16px 0 12px',

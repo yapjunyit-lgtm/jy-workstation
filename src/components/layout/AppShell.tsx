@@ -6,7 +6,7 @@ import { HelpOverlay } from './HelpOverlay';
 
 export function AppShell() {
   return (
-    <div className="grain-overlay flex" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
+    <div className="grain-overlay flex" style={{ height: '100dvh', overflow: 'hidden', background: 'var(--bg)' }}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only"
@@ -27,9 +27,14 @@ export function AppShell() {
         Skip to content
       </a>
       <Rail />
-      <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
+      <div className="flex flex-col flex-1" style={{ minWidth: 0, minHeight: 0 }}>
         <TopBar />
-        <main id="main" tabIndex={-1} className="flex-1" style={{ padding: '28px 36px 64px', outline: 'none' }}>
+        <main
+          id="main"
+          tabIndex={-1}
+          className="flex-1 overflow-auto"
+          style={{ padding: '28px 36px 64px', outline: 'none', minHeight: 0, overscrollBehavior: 'contain' }}
+        >
           <div className="mx-auto" style={{ maxWidth: 1400 }}>
             <Outlet />
           </div>
