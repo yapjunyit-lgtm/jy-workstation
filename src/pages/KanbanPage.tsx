@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useKanbanStore } from '../stores/useKanbanStore';
 import { KanbanBoard } from '../components/kanban/KanbanBoard';
 import { CategoryFilter } from '../components/kanban/CategoryFilter';
 
 export function KanbanPage() {
   const { hydrate, loading } = useKanbanStore();
+  const [searchParams] = useSearchParams();
+  const initialTaskId = searchParams.get('task');
 
   useEffect(() => {
     hydrate();
@@ -30,7 +33,7 @@ export function KanbanPage() {
           <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading board...</p>
         </div>
       ) : (
-        <KanbanBoard />
+        <KanbanBoard initialTaskId={initialTaskId} />
       )}
     </div>
   );

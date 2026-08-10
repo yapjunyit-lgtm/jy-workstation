@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -16,11 +16,22 @@ import { KanbanCard } from './KanbanCard';
 import { KanbanCardDetail } from './KanbanCardDetail';
 import type { KanbanTask, KanbanColumn as ColumnType } from '../../lib/types';
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  initialTaskId?: string | null;
+}
+
+export function KanbanBoard({ initialTaskId }: KanbanBoardProps = {}) {
   const { tasks, moveTask, add } = useKanbanStore();
   const [activeTask, setActiveTask] = useState<KanbanTask | null>(null);
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
   const [_, setAddingToColumn] = useState<ColumnType | null>(null);
+
+  // Auto-open a specific task (e.g. clicked from the calendar)
+  useEffect(() => {
+    if (!initialTaskId || tasks.length === 0) return;
+    const task = tasks.find((t) => t.id === initialTaskId);
+    if (task) setEditingTask(task);
+  }, [initialTaskId, tasks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

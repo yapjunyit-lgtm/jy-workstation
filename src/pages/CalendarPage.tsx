@@ -1,6 +1,7 @@
 import { useEffect, Component, type ReactNode } from 'react';
 import { useCalendarStore } from '../stores/useCalendarStore';
 import { useGCalStore } from '../stores/useGCalStore';
+import { useKanbanStore } from '../stores/useKanbanStore';
 import { seedCalendarBlocks } from '../lib/seed-calendar';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { ScheduleLegend } from '../components/calendar/ScheduleLegend';
@@ -14,11 +15,13 @@ class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 export function CalendarPage() {
   const { hydrate, loading } = useCalendarStore();
   const loadGCal = useGCalStore((s) => s.loadFromStorage);
+  const hydrateKanban = useKanbanStore((s) => s.hydrate);
 
   useEffect(() => {
     hydrate();
     seedCalendarBlocks();
     loadGCal();
+    hydrateKanban(); // kanban due-date tasks appear on the calendar
   }, []);
 
   return (

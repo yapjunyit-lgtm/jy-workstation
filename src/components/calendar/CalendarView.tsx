@@ -6,8 +6,10 @@ import {
   isSameMonth, isToday, startOfYear,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { useCalendarStore } from '../../stores/useCalendarStore';
 import { useGCalStore } from '../../stores/useGCalStore';
+import { useKanbanStore } from '../../stores/useKanbanStore';
 import { TimeBlock } from './TimeBlock';
 import { AddEventModal } from './AddEventModal';
 import { EditEventModal } from './EditEventModal';
@@ -22,13 +24,27 @@ const HOUR_HEIGHT = 52;
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const GCAL_COLOR = '#4285F4';
 
+// Category colors for Kanban due-date tasks shown on the calendar
+const KANBAN_COLORS: Record<string, string> = {
+  'ai-tooling':    '#8A9FB8',
+  'data-pipeline': '#8B9D83',
+  'dashboarding':  '#7A9A7E',
+  'automation':    '#C9A96E',
+  'documentation': '#C4887C',
+};
+const KANBAN_ID_PREFIX = 'task:';
+
 export function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [cursorDate, setCursorDate] = useState(new Date());
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlockType | null>(null);
+  const routerNav = useRouterNavigate();
   const wsBlocks = useCalendarStore((s) => s.blocks);
   const gcalEvents = useGCalStore((s) => s.events || []);
+  const kanbanTasks = useKanbanStore((s) => s.tasks);
+
+  const openTask = (taskId: string) => routerNav(`/kanban?task=${encodeURIComponent(taskId)}`);
 
   // Merge GCal events as native time blocks
   const gcalBlocks: TimeBlockType[] = useMemo(() => gcalEvents.map((e) => {
@@ -45,7 +61,40 @@ export function CalendarView() {
     };
   }), [gcalEvents]);
 
-  const blocks = useMemo(() => [...wsBlocks, ...gcalBlocks], [wsBlocks, gcalBlocks]);
+  // Kanban tasks with a target date → calendar entries (due date, all-day)
+  const kanbanBlocks: TimeBlockType[] = useMemo(
+    () =>
+      kanbanTasks
+        .filter((t) => t.targetDate)
+        .map((t) => ({
+          id: `${KANBAN_ID_PREFIX}${t.id}`,
+          date: t.targetDate as string,
+          startHour: START_HOUR,
+          endHour: END_HOUR,
+          type: 'custom' as const,
+          label: `📋 ${t.title}`,
+          color: KANBAN_COLORS[t.category] || '#8B9D83',
+        })),
+    [kanbanTasks]
+  );
+
+  // date -> tasks (for the "Due" all-day lane in week/day views)
+  const kanbanByDate = useMemo(() => {
+    const map = new Map<string, typeof kanbanTasks>();
+    kanbanTasks
+      .filter((t) => t.targetDate)
+      .forEach((t) => {
+        const arr = map.get(t.targetDate as string) || [];
+        arr.push(t);
+        map.set(t.targetDate as string, arr);
+      });
+    return map;
+  }, [kanbanTasks]);
+
+  const blocks = useMemo(
+    () => [...wsBlocks, ...gcalBlocks, ...kanbanBlocks],
+    [wsBlocks, gcalBlocks, kanbanBlocks]
+  );
 
   const navigate = (dir: 'prev' | 'next') => {
     const fns = {
@@ -95,9 +144,9 @@ export function CalendarView() {
       </div>
 
       {viewMode==='year' && <YearGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('month'); }} />}
-      {viewMode==='month' && <MonthGrid cursorDate={cursorDate} blocks={blocks} onSelect={(d) => { setCursorDate(d); setViewMode('day'); }} />}
-      {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} onBlockClick={setEditingBlock} />}
-      {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} onBlockClick={setEditingBlock} />}
+      {viewMode==='month' && <MonthGrid cursorDate={cursorDate} blocks={blocks} kanbanByDate={kanbanByDate} onSelect={(d) => { setCursorDate(d); setViewMode('day'); }} onOpenTask={openTask} />}
+      {viewMode==='week' && <WeekGrid cursorDate={cursorDate} blocks={blocks} kanbanByDate={kanbanByDate} onBlockClick={setEditingBlock} onOpenTask={openTask} />}
+      {viewMode==='day' && <DayGrid cursorDate={cursorDate} blocks={blocks} kanbanByDate={kanbanByDate} onBlockClick={setEditingBlock} onOpenTask={openTask} />}
 
       {showAddEvent && <AddEventModal preselectedDate={cursorDate} onClose={() => setShowAddEvent(false)} />}
       {editingBlock && <EditEventModal block={editingBlock} onClose={() => setEditingBlock(null)} />}
@@ -145,7 +194,11 @@ function YearGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: 
 }
 
 // ── MONTH ──
-function MonthGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks: Blocks; onSelect: (d: Date) => void }) {
+function MonthGrid({ cursorDate, blocks, kanbanByDate, onSelect, onOpenTask }: {
+  cursorDate: Date; blocks: Blocks;
+  kanbanByDate: Map<string, { id: string; title: string; category: string }[]>;
+  onSelect: (d: Date) => void; onOpenTask: (id: string) => void;
+}) {
   const ms = startOfMonth(cursorDate);
   const me = endOfMonth(cursorDate);
   const days = eachDayOfInterval({ start: startOfWeek(ms, { weekStartsOn: 1 }), end: endOfWeek(me, { weekStartsOn: 1 }) });
@@ -170,11 +223,20 @@ function MonthGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks:
                   style={{ background: !inM ? 'var(--bg-root)' : cur ? 'var(--accent-soft)' : 'var(--bg-surface)', borderColor: cur ? 'var(--accent)' : 'var(--border-color)', opacity: !inM ? 0.4 : 1 }}
                   onClick={() => onSelect(day)}>
                   <div className="text-xs font-medium mb-0.5" style={{ color: cur ? 'var(--accent)' : inM ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{format(day,'d')}</div>
-                  {dayBlocks.slice(0,3).map((b) => (
+                  {dayBlocks.slice(0,2).map((b) => (
                     <div key={b.id} className="text-[10px] truncate rounded px-1 py-0.5 mb-0.5"
                       style={{ background: b.color+'30', borderLeft: `2px solid ${b.color}`, color: 'var(--text-primary)' }}>{b.label}</div>
                   ))}
-                  {dayBlocks.length > 3 && <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+{dayBlocks.length-3} more</div>}
+                  {(kanbanByDate.get(ds) || []).slice(0,1).map((t) => (
+                    <div key={t.id}
+                      className="text-[10px] truncate rounded px-1 py-0.5 mb-0.5 cursor-pointer transition-soft"
+                      title={`Open Kanban task: ${t.title}`}
+                      style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
+                      onClick={(e) => { e.stopPropagation(); onOpenTask(t.id); }}>
+                      📋 {t.title}
+                    </div>
+                  ))}
+                  {(dayBlocks.length + (kanbanByDate.get(ds) || []).length) > 3 && <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>+ more</div>}
                 </div>
               );
             })}
@@ -186,7 +248,11 @@ function MonthGrid({ cursorDate, blocks, onSelect }: { cursorDate: Date; blocks:
 }
 
 // ── WEEK ──
-function WeekGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; blocks: Blocks; onBlockClick: (b: TimeBlockType) => void }) {
+function WeekGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }: {
+  cursorDate: Date; blocks: Blocks;
+  kanbanByDate: Map<string, { id: string; title: string; category: string }[]>;
+  onBlockClick: (b: TimeBlockType) => void; onOpenTask: (id: string) => void;
+}) {
   const ws = startOfWeek(cursorDate, { weekStartsOn: 1 });
   const now = new Date();
   const curH = now.getHours() + now.getMinutes()/60;
@@ -204,6 +270,29 @@ function WeekGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; bloc
           </div>;
         })}
       </div>
+
+      {/* Kanban due-date lane */}
+      <div className="flex border-b" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-subtle)' }}>
+        <div className="flex-shrink-0 flex items-center justify-end pr-2 text-[9px] uppercase tracking-wide" style={{ width:48, color:'var(--text-tertiary)' }}>Due</div>
+        {DAYS_SHORT.map((_, di) => {
+          const date = addDays(ws, di);
+          const ds = format(date,'yyyy-MM-dd');
+          const due = kanbanByDate.get(ds) || [];
+          return <div key={di} className="flex-1 min-w-[80px] px-1 py-1 border-l space-y-0.5" style={{ borderColor:'var(--border-color)' }}>
+            {due.length === 0 && <div className="text-[9px] text-center" style={{ color:'var(--text-tertiary)' }}>—</div>}
+            {due.slice(0,3).map((t) => (
+              <div key={t.id} className="text-[10px] truncate rounded px-1 py-0.5 cursor-pointer transition-soft"
+                title={`Open Kanban task: ${t.title}`}
+                style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
+                onClick={() => onOpenTask(t.id)}>
+                📋 {t.title}
+              </div>
+            ))}
+            {due.length > 3 && <div className="text-[9px]" style={{ color:'var(--text-tertiary)' }}>+{due.length-3} more</div>}
+          </div>;
+        })}
+      </div>
+
       <div className="flex relative" style={{ height:th }}>
         <div className="flex-shrink-0 relative" style={{ width:48 }}>
           {hours.map((h) => <div key={h} className="absolute right-2 text-[10px]" style={{ top:(h-START_HOUR)*HOUR_HEIGHT-6, color:'var(--text-tertiary)' }}>
@@ -217,7 +306,7 @@ function WeekGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; bloc
           const cur = isToday(date);
           return <div key={di} className="flex-1 relative min-w-[80px] border-l" style={{ borderColor:'var(--border-color)' }}>
             {hours.map((h) => <div key={h} className="absolute left-0 right-0 border-t" style={{ top:(h-START_HOUR)*HOUR_HEIGHT, borderColor:'var(--border-color)', opacity:0.5 }} />)}
-            {dayBlocks.map((b) => <TimeBlock key={b.id} block={b} hourHeight={HOUR_HEIGHT} startHour={START_HOUR} onClick={onBlockClick} />)}
+            {dayBlocks.map((b) => <TimeBlock key={b.id} block={b} hourHeight={HOUR_HEIGHT} startHour={START_HOUR} onClick={b.id.startsWith(KANBAN_ID_PREFIX) ? () => onOpenTask(b.id.slice(KANBAN_ID_PREFIX.length)) : onBlockClick} />)}
             {cur && curH>=START_HOUR && curH<=END_HOUR && (
               <div className="absolute left-0 right-0 z-10 flex items-center" style={{ top:(curH-START_HOUR)*HOUR_HEIGHT }}>
                 <div className="w-2 h-2 rounded-full -ml-1" style={{ background:'var(--danger)' }} /><div className="flex-1 h-px" style={{ background:'var(--danger)' }} />
@@ -232,15 +321,35 @@ function WeekGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; bloc
 }
 
 // ── DAY ──
-function DayGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; blocks: Blocks; onBlockClick: (b: TimeBlockType) => void }) {
+function DayGrid({ cursorDate, blocks, kanbanByDate, onBlockClick, onOpenTask }: {
+  cursorDate: Date; blocks: Blocks;
+  kanbanByDate: Map<string, { id: string; title: string; category: string }[]>;
+  onBlockClick: (b: TimeBlockType) => void; onOpenTask: (id: string) => void;
+}) {
   const ds = format(cursorDate,'yyyy-MM-dd');
   const dayBlocks = blocks.filter((b) => b.date===ds);
   const hours = Array.from({ length: END_HOUR-START_HOUR+1 }, (_, i) => START_HOUR+i);
   const now = new Date();
   const curH = now.getHours()+now.getMinutes()/60;
   const cur = isToday(cursorDate);
+  const due = kanbanByDate.get(ds) || [];
   return (
     <div>
+      {/* Kanban due-date chips */}
+      {due.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2 p-2 rounded-lg" style={{ background: 'var(--bg-subtle)' }}>
+          <span className="text-[10px] uppercase tracking-wide self-center" style={{ color: 'var(--text-tertiary)' }}>Due:</span>
+          {due.map((t) => (
+            <span key={t.id}
+              className="text-[11px] rounded px-2 py-0.5 cursor-pointer transition-soft"
+              title={`Open Kanban task: ${t.title}`}
+              style={{ background: (KANBAN_COLORS[t.category] || '#8B9D83')+'25', borderLeft: `2px solid ${KANBAN_COLORS[t.category] || '#8B9D83'}`, color: 'var(--text-primary)' }}
+              onClick={() => onOpenTask(t.id)}>
+              📋 {t.title}
+            </span>
+          ))}
+        </div>
+      )}
       {hours.map((hour) => {
         const hb = dayBlocks.filter((b) => b.startHour>=hour && b.startHour<hour+1);
         const show = cur && curH>=hour && curH<hour+1;
@@ -257,7 +366,7 @@ function DayGrid({ cursorDate, blocks, onBlockClick }: { cursorDate: Date; block
               )}
               {hb.map((b) => (
                 <div key={b.id} className="rounded px-2 py-1 ml-1 mr-2 text-xs cursor-pointer hover:brightness-95" style={{ background: b.color+'25', borderLeft: `3px solid ${b.color}`, color: 'var(--text-primary)' }}
-                  onClick={() => onBlockClick(b)}>
+                  onClick={b.id.startsWith(KANBAN_ID_PREFIX) ? () => onOpenTask(b.id.slice(KANBAN_ID_PREFIX.length)) : () => onBlockClick(b)}>
                   <span className="font-medium">{b.label}</span>
                   <span className="ml-2" style={{ color:'var(--text-tertiary)', fontSize:10 }}>{fmtHr(b.startHour)} – {fmtHr(b.endHour)}</span>
                 </div>
