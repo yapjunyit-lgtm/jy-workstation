@@ -137,7 +137,7 @@ export function summarizeWorkstation() {
 
   const counts = {};
   for (const t of ['priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
-    'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks', 'scratchNotes']) {
+    'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks', 'scratchNotes', 'quickNotes']) {
     counts[t] = getAll(t).length;
   }
 

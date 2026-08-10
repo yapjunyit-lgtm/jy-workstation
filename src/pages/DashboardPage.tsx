@@ -2,6 +2,7 @@ import { DailyPriorities } from '../components/dashboard/DailyPriorities';
 import { PomodoroTimer } from '../components/dashboard/PomodoroTimer';
 import { BlockerTracker } from '../components/dashboard/BlockerTracker';
 import { RichEditor } from '../components/scratchpad/RichEditor';
+import { QuickNotesPanel } from '../components/dashboard/QuickNotesPanel';
 
 export function DashboardPage() {
   return (
@@ -24,8 +25,9 @@ export function DashboardPage() {
           <DailyPriorities />
           <BlockerTracker />
         </div>
-        <div>
+        <div className="space-y-6">
           <PomodoroTimer />
+          <QuickNotesPanel />
         </div>
       </div>
 

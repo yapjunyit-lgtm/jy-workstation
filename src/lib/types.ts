@@ -131,6 +131,14 @@ export interface TimeBlock {
   color: string;
 }
 
+// ── QUICK NOTES ──
+export interface QuickNote {
+  id: string;
+  date: string;
+  content: string;
+  createdAt: number;
+}
+
 // ── SCRATCHPAD ──
 export interface ScratchNote {
   id: string;
