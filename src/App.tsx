@@ -11,10 +11,10 @@ import { AIControlPage } from './pages/AIControlPage';
 import { ImpactPage } from './pages/ImpactPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { isFirebaseConfigured, onFirebaseAuthChange } from './lib/firebase';
+import { isBridgeReachable } from './lib/cloud-sync';
 import { useCloudStatusStore } from './stores/useCloudStatusStore';
 import { ErrorBoundary, installGlobalErrorReporter } from './components/layout/ErrorBoundary';
-import { pushAllToCloud, pullAllFromCloud, attachAutoPush, startRealtimeSync, stopRealtimeSync } from './lib/cloud-sync';
+import { pushAllToCloud, attachAutoPush, startRealtimeSync, stopRealtimeSync, syncNow } from './lib/cloud-sync';
 
 function AppContent() {
   const { isLocked, isSetup, isLoading, checkAuth } = useAuthStore();
@@ -23,32 +23,36 @@ function AppContent() {
   useEffect(() => {
     checkAuth().then(() => {
       setInitialized(true);
-      // Wire change hooks once (they no-op until signed in + visible)
-      if (isFirebaseConfigured()) attachAutoPush();
+      // Wire local change hooks once — pushes go to the bridge SQLite.
+      attachAutoPush();
 
-      // Only sync when a cloud account is already signed in — never
-      // auto-sign-in from a background timer (Firebase Auth closes its
-      // IndexedDB when the tab is hidden, producing rejections).
-      // Re-subscribe on EVERY auth change (sign-in, sign-out, account switch).
-      const setCloudEmail = useCloudStatusStore.getState().setEmail;
-      onFirebaseAuthChange((user) => {
-        setCloudEmail(user ? (user.email || 'signed in') : null);
-        if (user) {
-          startRealtimeSync().catch(() => {});
-          pushAllToCloud()
-            .then(() => pullAllFromCloud())
-            .catch(() => {});
-        } else {
+      // Auto-connect to the local vault bridge: sync immediately, then
+      // keep checking so it (re)connects if the bridge restarts.
+      const setConnected = useCloudStatusStore.getState().setConnected;
+      let syncing = false;
+
+      const connect = async () => {
+        const ok = await isBridgeReachable();
+        setConnected(ok);
+        if (ok && !syncing) {
+          syncing = true;
+          await syncNow().catch(() => {});
+          await startRealtimeSync().catch(() => {});
+          syncing = false;
+        } else if (!ok) {
           stopRealtimeSync();
         }
-      });
+      };
+
+      connect();
+      const healthTimer = setInterval(() => connect(), 15000);
+      return () => clearInterval(healthTimer);
     });
   }, []);
 
-  // Restart realtime listeners whenever the tab becomes visible again
-  // (a hidden tab at startup used to skip listener setup entirely).
+  // Reconnect realtime polling whenever the tab becomes visible again
   useEffect(() => {
-    if (!initialized || isLocked || !isFirebaseConfigured()) return;
+    if (!initialized || isLocked) return;
     const onVis = () => {
       if (document.visibilityState === 'visible') {
         startRealtimeSync().catch(() => {});
@@ -58,10 +62,9 @@ function AppContent() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [initialized, isLocked]);
 
-  // Safety net: periodic push every 5 minutes if configured
+  // Safety net: periodic push every 5 minutes
   useEffect(() => {
     if (!initialized || isLocked) return;
-    if (!isFirebaseConfigured()) return;
     const interval = setInterval(() => {
       pushAllToCloud().catch(() => {});
     }, 5 * 60 * 1000);

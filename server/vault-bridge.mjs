@@ -12,6 +12,7 @@
  */
 
 import { createServer } from 'node:http';
+import { initDB, getAll, upsertAll, getChanges, getStats } from './db.mjs';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, writeFile, mkdir, appendFile, stat } from 'node:fs/promises';
@@ -361,6 +362,37 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // ── Local SQLite sync API ─────────────────────────────────────
+    if (req.method === 'GET' && url.pathname === '/api/data/stats') {
+      json(res, 200, getStats());
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/data/changes') {
+      const since = Number(url.searchParams.get('since') || 0);
+      json(res, 200, { changes: getChanges(since) });
+      return;
+    }
+
+    const dataMatch = url.pathname.match(/^\/api\/data\/([A-Za-z0-9_-]+)$/);
+    if (dataMatch) {
+      const collection = dataMatch[1];
+      if (req.method === 'GET') {
+        json(res, 200, { records: getAll(collection) });
+        return;
+      }
+      if (req.method === 'POST') {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        let parsed = {};
+        try { parsed = JSON.parse(body || '{}'); } catch { /* fall through */ }
+        const records = Array.isArray(parsed.records) ? parsed.records : [];
+        const count = upsertAll(collection, records);
+        json(res, 200, { ok: true, count });
+        return;
+      }
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/vault/actions') {
       let body = '';
       for await (const chunk of req) body += chunk;
@@ -400,6 +432,7 @@ const server = createServer(async (req, res) => {
 });
 
 await mkdir(LEDGER_DIR, { recursive: true });
+await initDB();
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`[vault-bridge] listening on http://127.0.0.1:${PORT}`);
   console.log(`[vault-bridge] vault: ${VAULT}`);

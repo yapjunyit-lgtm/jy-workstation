@@ -1,27 +1,15 @@
 /**
- * Cloud Sync Engine — bridges local Dexie (IndexedDB) to Firestore.
+ * Local Sync Engine — bridges Dexie (IndexedDB) to the local vault bridge's
+ * SQLite database (server/workspace.db). No cloud, no auth, no quota.
  *
- * - Local (Dexie) is the read/write store; every change is pushed to
- *   Firestore (debounced) and remote changes are mirrored back in real time.
+ * - Local (Dexie) is the read/write store; every change is pushed to the
+ *   bridge (debounced) and bridge changes are polled back in real time.
  * - Deletes become `{ deleted: true, updatedAt }` tombstones so they
- *   propagate to other devices.
- * - Data lives under `users/{uid}/{collection}` so each account owns
- *   its own cloud copy (anonymous accounts are per-device; use
- *   email/password for multi-device access).
+ *   propagate to every browser hitting the same bridge.
  */
 import { db } from './db';
 import { notifyStoreRefresh } from './store-refresh';
-import {
-  getFirestoreDB, getFirebaseAuth, isFirebaseConfigured,
-} from './firebase';
-import {
-  collection, doc, getDocs, setDoc, onSnapshot,
-  query, limit, getCountFromServer, type Unsubscribe,
-} from 'firebase/firestore';
-
-function isDocumentVisible(): boolean {
-  return typeof document === 'undefined' || document.visibilityState !== 'hidden';
-}
+import { BRIDGE_URL, health } from './bridge';
 
 export const SYNC_TABLES = [
   'priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
@@ -32,47 +20,43 @@ export const SYNC_TABLES = [
 export type SyncTableName = (typeof SYNC_TABLES)[number];
 type CountMap = Record<string, number>;
 
-
-function userPath(table: string): string {
-  const auth = getFirebaseAuth();
-  const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error('Not signed in');
-  return `users/${uid}/${table}`;
+function dataUrl(collection: string): string {
+  return `${BRIDGE_URL}/api/data/${collection}`;
 }
 
-// ── Push: local → cloud ───────────────────────────────────────────────
-// Per-session cache of the last JSON pushed per record, so unchanged
-// documents are never rewritten (saves Firestore write quota).
+// ── Push: local → bridge SQLite ───────────────────────────────────────
+// Per-session cache of the last JSON pushed per record → unchanged docs
+// are never rewritten.
 const lastPushedJson = new Map<string, Map<string, string>>();
 
 async function pushTable(table: SyncTableName): Promise<number> {
-  if (!isFirebaseConfigured()) return 0;
-  if (!isDocumentVisible()) return 0;
-  const auth = getFirebaseAuth();
-  if (!auth.currentUser) return 0;
-
-  const firestore = getFirestoreDB();
   const records = await db.table(table).toArray() as Record<string, unknown>[];
-  const col = collection(firestore, userPath(table));
-
   let cache = lastPushedJson.get(table);
   if (!cache) {
     cache = new Map();
     lastPushedJson.set(table, cache);
   }
 
-  let pushed = 0;
+  const payload: Record<string, unknown>[] = [];
   for (const rec of records) {
     const id = rec.id as string;
     const { id: _id, ...rest } = rec;
-    const payload = { ...rest, updatedAt: rec.updatedAt ?? Date.now() };
-    const json = JSON.stringify(payload);
+    const full = { ...rest, updatedAt: rec.updatedAt ?? Date.now() };
+    const json = JSON.stringify(full);
     if (cache.get(id) === json) continue; // unchanged since last push
-    await setDoc(doc(col, id), payload);
+    payload.push({ id, ...full });
     cache.set(id, json);
-    pushed++;
   }
-  return pushed;
+
+  if (payload.length === 0) return 0;
+  const res = await fetch(dataUrl(table), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records: payload }),
+  });
+  if (!res.ok) throw new Error(`Bridge push failed: ${res.status}`);
+  const data = await res.json();
+  return data.count ?? payload.length;
 }
 
 export async function pushAllToCloud(): Promise<CountMap> {
@@ -80,45 +64,39 @@ export async function pushAllToCloud(): Promise<CountMap> {
   for (const table of SYNC_TABLES) {
     try {
       results[table] = await pushTable(table);
-    } catch {
-      results[table] = 0; // keep going, report per-table
+    } catch (e) {
+      results[table] = 0;
+      console.warn(`[sync] push ${table} failed`, e);
     }
   }
   return results;
 }
 
-// ── Pull: cloud → local (replaces local with cloud when cloud has data) ─
+// ── Pull: bridge → local ──────────────────────────────────────────────
 export async function pullAllFromCloud(): Promise<CountMap> {
   const results: CountMap = {};
-  if (!isFirebaseConfigured()) return results;
-  if (!isDocumentVisible()) return results;
-  const auth = getFirebaseAuth();
-  if (!auth.currentUser) return results;
-  const firestore = getFirestoreDB();
-
   for (const table of SYNC_TABLES) {
     try {
-      const col = collection(firestore, userPath(table));
-      const snap = await getDocs(query(col, limit(5000)));
-      if (snap.empty) {
-        results[table] = 0; // cloud is empty — keep local data
+      const res = await fetch(dataUrl(table));
+      if (!res.ok) continue;
+      const { records = [] } = await res.json();
+      if (records.length === 0) {
+        results[table] = 0; // bridge empty — keep local
         continue;
       }
       const cloudIds = new Set<string>();
-      for (const d of snap.docs) {
-        const data = d.data();
-        if (data.deleted) continue;
-        cloudIds.add(d.id);
-        await db.table(table).put({ ...data, id: d.id } as never);
+      for (const rec of records) {
+        cloudIds.add(rec.id as string);
+        await db.table(table).put(rec as never);
       }
-      // Remove local records that no longer exist in the cloud
+      // Remove local records no longer on the bridge
       const local = await db.table(table).toArray() as { id: string }[];
       for (const rec of local) {
         if (!cloudIds.has(rec.id)) await db.table(table).delete(rec.id);
       }
       results[table] = cloudIds.size;
-      notifyStoreRefresh(table); // cloud data changed → stores must re-read
-    } catch {
+      notifyStoreRefresh(table);
+    } catch (e) {
       results[table] = 0;
     }
   }
@@ -128,81 +106,69 @@ export async function pullAllFromCloud(): Promise<CountMap> {
 // ── Stats ─────────────────────────────────────────────────────────────
 export async function getCloudStats(): Promise<{ local: number; remote: number }> {
   let local = 0;
-  let remote = 0;
-  if (!isFirebaseConfigured()) return { local, remote };
-
   for (const table of SYNC_TABLES) {
     try { local += await db.table(table).count(); } catch { /* ignore */ }
   }
-
-  if (!isDocumentVisible()) return { local, remote };
-  const auth = getFirebaseAuth();
-  if (auth.currentUser) {
-    const firestore = getFirestoreDB();
-    for (const table of SYNC_TABLES) {
-      try {
-        const col = collection(firestore, userPath(table));
-        const snap = await getCountFromServer(query(col));
-        remote += snap.data().count;
-      } catch { /* ignore */ }
+  let remote = 0;
+  try {
+    const res = await fetch(`${BRIDGE_URL}/api/data/stats`);
+    if (res.ok) {
+      const stats = await res.json();
+      remote = stats.total ?? 0;
     }
-  }
-
+  } catch { /* bridge offline */ }
   return { local, remote };
 }
 
-// ── Real-time: cloud → local ──────────────────────────────────────────
-let unsubscribers: Unsubscribe[] = [];
+// ── Realtime: poll bridge changes → local ─────────────────────────────
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let lastChangeTs = 0;
 
 export async function startRealtimeSync(): Promise<void> {
-  if (!isFirebaseConfigured()) return;
-  const auth = getFirebaseAuth();
-  if (!auth.currentUser) return;
-
   stopRealtimeSync();
-  const firestore = getFirestoreDB();
-
-  unsubscribers = SYNC_TABLES.map((table) => {
-    const col = collection(firestore, userPath(table));
-    return onSnapshot(col, (snap) => {
-      const localTable = db.table(table);
-      const ops: Promise<unknown>[] = [];
-
-      snap.docChanges().forEach((change) => {
-        const data = change.doc.data();
-        if (data.deleted || change.type === 'removed') {
-          ops.push(localTable.delete(change.doc.id).catch(() => {}));
-          return;
-        }
-        ops.push(
-          localTable.get(change.doc.id).then((existing) => {
-            const ex = existing as Record<string, unknown> | undefined;
-            if (!ex) return localTable.put({ ...data, id: change.doc.id } as never);
-            if ((ex.updatedAt ?? 0) > (data.updatedAt ?? 0)) return; // local newer
-            // Echo guard: identical data (e.g. our own pushed write coming
-            // back) must NOT rewrite local — prevents push/pull loops.
-            if ((ex.updatedAt ?? 0) === (data.updatedAt ?? 0)) {
-              const exJson = JSON.stringify(ex);
-              const inJson = JSON.stringify({ ...data, id: change.doc.id });
-              if (exJson === inJson) return;
-            }
-            return localTable.put({ ...data, id: change.doc.id } as never);
-          }).catch(() => {})
-        );
-      });
-
-      // Once every cloud write has landed in Dexie, tell the UI stores
-      // to re-read so live cross-device changes appear immediately.
-      Promise.all(ops)
-        .then(() => notifyStoreRefresh(table))
-        .catch(() => {});
-    }, () => { /* transient — will retry on reconnect */ });
-  });
+  lastChangeTs = 0;
+  await applyChanges();
+  pollTimer = setInterval(() => { applyChanges().catch(() => {}); }, 3000);
 }
 
 export function stopRealtimeSync(): void {
-  unsubscribers.forEach((u) => u());
-  unsubscribers = [];
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+async function applyChanges(): Promise<void> {
+  const res = await fetch(`${BRIDGE_URL}/api/data/changes?since=${lastChangeTs}`);
+  if (!res.ok) return;
+  const { changes = [] } = await res.json();
+  if (changes.length === 0) return;
+
+  const touched = new Set<string>();
+  for (const ch of changes) {
+    const table = ch.collection as SyncTableName;
+    if (!SYNC_TABLES.includes(table)) continue;
+    const localTable = db.table(table);
+    if (ch.deleted) {
+      await localTable.delete(ch.id).catch(() => {});
+    } else {
+      const existing = await localTable.get(ch.id).catch(() => undefined);
+      if (existing) {
+        const ex = existing as Record<string, unknown>;
+        if ((ex.updatedAt ?? 0) > (ch.updatedAt ?? 0)) continue; // local newer
+        // Echo guard: identical data must not rewrite local
+        if ((ex.updatedAt ?? 0) === (ch.updatedAt ?? 0)) {
+          const exJson = JSON.stringify(ex);
+          const inJson = JSON.stringify({ ...ch.data, id: ch.id, updatedAt: ch.updatedAt });
+          if (exJson === inJson) continue;
+        }
+      }
+      await localTable.put({ ...ch.data, id: ch.id, updatedAt: ch.updatedAt } as never).catch(() => {});
+    }
+    touched.add(table);
+  }
+  lastChangeTs = changes[changes.length - 1].updatedAt;
+  touched.forEach((t) => notifyStoreRefresh(t));
 }
 
 // ── Auto-push on local changes (debounced) ────────────────────────────
@@ -210,11 +176,6 @@ let hooksAttached = false;
 const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function scheduleTablePush(table: string): void {
-  if (!isFirebaseConfigured()) return;
-  if (!isDocumentVisible()) return;
-  const auth = getFirebaseAuth();
-  if (!auth.currentUser) return;
-
   const timer = pushTimers.get(table);
   if (timer) clearTimeout(timer);
   pushTimers.set(table, setTimeout(async () => {
@@ -224,34 +185,28 @@ function scheduleTablePush(table: string): void {
 }
 
 function tombstone(table: string, id: string): void {
-  if (!isFirebaseConfigured()) return;
-  if (!isDocumentVisible()) return;
-  const auth = getFirebaseAuth();
-  if (!auth.currentUser) return;
-  const firestore = getFirestoreDB();
-  const col = collection(firestore, userPath(table));
-  setDoc(doc(col, id), { deleted: true, updatedAt: Date.now() }).catch(() => {});
+  fetch(dataUrl(table), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records: [{ id, deleted: true, updatedAt: Date.now() }] }),
+  }).catch(() => {});
 }
 
 export function attachAutoPush(): void {
   if (hooksAttached) return;
   hooksAttached = true;
 
-  // Dexie 4 supports table hooks (creating/updating/deleting); the old
-  // db.on('changes') event no longer exists in v4 and throws at runtime.
   for (const table of SYNC_TABLES) {
     const t = db.table(table) as never as {
       hook(name: string, fn: (...args: any[]) => void): void;
     };
     t.hook('creating', (...args: any[]) => {
-      const obj = args[1] as { id?: string } | undefined;
       scheduleTablePush(table);
-      void obj;
+      void args;
     });
     t.hook('updating', (...args: any[]) => {
-      const obj = args[2] as { id?: string } | undefined;
       scheduleTablePush(table);
-      void obj;
+      void args;
     });
     t.hook('deleting', (...args: any[]) => {
       const primKey = args[0];
@@ -263,9 +218,18 @@ export function attachAutoPush(): void {
   }
 }
 
-// ── Full one-shot sync (used by App startup) ──────────────────────────
+// ── One-shot full sync ────────────────────────────────────────────────
 export async function syncNow(): Promise<CountMap> {
   const pulled = await pullAllFromCloud();
   const pushed = await pushAllToCloud();
   return { ...pulled, ...pushed };
+}
+
+export async function isBridgeReachable(): Promise<boolean> {
+  try {
+    const h = await health();
+    return h.ok === true;
+  } catch {
+    return false;
+  }
 }

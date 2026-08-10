@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 
 interface CloudStatusState {
-  email: string | null;
-  setEmail: (email: string | null) => void;
+  connected: boolean;
+  setConnected: (connected: boolean) => void;
 }
 
-/** Tiny store so the TopBar can show per-browser cloud sync state. */
+/** TopBar indicator: is the local vault bridge (SQLite) reachable? */
 export const useCloudStatusStore = create<CloudStatusState>((set) => ({
-  email: null,
-  setEmail: (email) => set({ email }),
+  connected: false,
+  setConnected: (connected) => set({ connected }),
 }));

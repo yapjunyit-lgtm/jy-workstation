@@ -3,12 +3,8 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
 import { useGCalStore } from '../stores/useGCalStore';
 import { exportAllAsMarkdownZip, exportFullBackupJSON, importFullBackupJSON } from '../lib/sync';
-import {
-  isFirebaseConfigured, configureFirebase, getFirebaseConfig, clearFirebaseConfig,
-  ensureSignedIn, firebaseSignIn, firebaseSignUp, firebaseSignOut, onFirebaseAuthChange,
-} from '../lib/firebase';
+import { isBridgeReachable } from '../lib/cloud-sync';
 import { pushAllToCloud, pullAllFromCloud, getCloudStats } from '../lib/cloud-sync';
-import type { FirebaseConfig } from '../lib/firebase';
 
 type SettingsTab = 'auth' | 'sync' | 'calendar' | 'cloud' | 'backup';
 
@@ -24,7 +20,7 @@ export function SettingsPage() {
           { id: 'auth' as const, label: 'Auth' },
           { id: 'sync' as const, label: 'Obsidian Sync' },
           { id: 'calendar' as const, label: 'Calendar' },
-          { id: 'cloud' as const, label: 'Cloud Sync' },
+          { id: 'cloud' as const, label: 'Local Sync' },
           { id: 'backup' as const, label: 'Backup' },
         ]).map((t) => (
           <button
@@ -225,67 +221,26 @@ function BackupTab() {
 
 // ── Cloud Tab (Firebase) ──
 function CloudTab() {
-  const [config, setConfig] = useState<FirebaseConfig>(getFirebaseConfig() || {
-    apiKey: '', authDomain: '', projectId: '', storageBucket: '', messagingSenderId: '', appId: '',
-  });
+  const [connected, setConnected] = useState<boolean | null>(null);
   const [status, setStatus] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [stats, setStats] = useState<{ local: number; remote: number } | null>(null);
-  const [user, setUser] = useState<{ email: string | null; isAnonymous: boolean } | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
-  const connected = isFirebaseConfigured();
-
-  // Track the signed-in Firebase account
-  useEffect(() => {
-    if (!connected) return;
-    const unsub = onFirebaseAuthChange((u) => {
-      setUser(u ? { email: u.email, isAnonymous: u.isAnonymous } : null);
-      if (u) getCloudStats().then(setStats);
-    });
-    return unsub;
-  }, [connected]);
-
-  useEffect(() => {
-    if (connected) getCloudStats().then(setStats);
-  }, []);
-
-  const handleConnect = async () => {
-    if (!config.apiKey || !config.projectId) {
-      setStatus('API Key and Project ID are required');
-      return;
-    }
-    configureFirebase(config);
-    setStatus('Connected!');
-    await ensureSignedIn().catch(() => {});
-    getCloudStats().then(setStats);
+  const refresh = async () => {
+    const ok = await isBridgeReachable();
+    setConnected(ok);
+    if (ok) getCloudStats().then(setStats);
+    else setStats(null);
   };
 
-  const handleSignIn = async () => {
-    if (!email || !password) { setStatus('Email and password required'); return; }
-    const ok = await firebaseSignIn(email.trim(), password);
-    setStatus(ok ? 'Signed in!' : 'Sign in failed');
-  };
-
-  const handleSignUp = async () => {
-    if (!email || password.length < 8) { setStatus('Email + password (min 8 chars) required'); return; }
-    const ok = await firebaseSignUp(email.trim(), password);
-    setStatus(ok ? 'Account created — same account on every browser/device will sync' : 'Sign up failed');
-  };
-
-  const handleSignOut = async () => {
-    await firebaseSignOut().catch(() => {});
-    setUser(null);
-    setStatus('Signed out');
-  };
+  useEffect(() => { refresh(); }, []);
 
   const handlePush = async () => {
     setSyncing(true); setStatus('');
     try {
       const results = await pushAllToCloud();
       const total = Object.values(results).reduce((a, b) => a + b, 0);
-      setStatus(`Pushed ${total} records to cloud`);
+      setStatus(`Pushed ${total} records to local database`);
       getCloudStats().then(setStats);
     } catch (e: any) {
       setStatus(`Push failed: ${e.message}`);
@@ -294,12 +249,12 @@ function CloudTab() {
   };
 
   const handlePull = async () => {
-    if (!confirm('This will REPLACE all local data with cloud data. Continue?')) return;
+    if (!confirm('This will REPLACE all local data with database data. Continue?')) return;
     setSyncing(true); setStatus('');
     try {
       const results = await pullAllFromCloud();
       const total = Object.values(results).reduce((a, b) => a + b, 0);
-      setStatus(`Pulled ${total} records from cloud. Reloading...`);
+      setStatus(`Pulled ${total} records from local database. Reloading...`);
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: any) {
       setStatus(`Pull failed: ${e.message}`);
@@ -307,102 +262,44 @@ function CloudTab() {
     setSyncing(false);
   };
 
-  const handleDisconnect = () => {
-    if (confirm('Disconnect Firebase? Your local data is preserved.')) {
-      clearFirebaseConfig();
-      setStatus('Disconnected');
-      setStats(null);
-      setUser(null);
-    }
-  };
-
   return (
     <div className="card-static max-w-lg space-y-4">
-      <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>☁️ Firebase Cloud Sync</h3>
+      <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>💾 Local Database Sync</h3>
 
-      {connected ? (
+      {connected === null ? (
+        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Checking bridge...</p>
+      ) : connected ? (
         <div className="p-3 rounded-lg space-y-3" style={{ background: '#E2EDE4' }}>
-          <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>✅ Connected to Firebase</p>
-
-          {user && (
-            <div className="p-2 rounded-lg" style={{ background: 'var(--bg-surface)' }}>
-              <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
-                👤 {user.email || `Anonymous (${user.isAnonymous ? 'per-browser' : 'account'})`}
-              </p>
-              {user.isAnonymous && (
-                <p className="text-[10px] mt-1" style={{ color: 'var(--warning)' }}>
-                  ⚠ Anonymous accounts are <strong>per-browser</strong> — use the same email account on every browser/device to sync together.
-                </p>
-              )}
-            </div>
-          )}
-
-          {!user && (
-            <div className="p-2 rounded-lg" style={{ background: 'var(--bg-surface)' }}>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Not signed in — sync is paused.</p>
-            </div>
-          )}
-
-          {/* Email/password — the reliable cross-browser option */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-              🔑 Account (use the SAME email on every browser/device)
-            </p>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" className="input-sakura text-sm" />
-            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (min 8 chars)" type="password" className="input-sakura text-sm" />
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={handleSignIn} className="btn-sakura btn-primary btn-sm">Sign In</button>
-              <button onClick={handleSignUp} className="btn-sakura btn-secondary btn-sm">Create Account</button>
-              {user && (
-                <button onClick={handleSignOut} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>Sign Out</button>
-              )}
-            </div>
-          </div>
-
+          <p className="text-xs font-medium" style={{ color: 'var(--success)' }}>✅ Connected to local SQLite (vault bridge)</p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Data is stored on this machine at <code className="font-mono">server/workspace.db</code> — every browser
+            hitting the bridge shares it. No cloud, no quota, no sign-in.
+          </p>
           {stats && (
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              📊 {stats.local} local records · {stats.remote} cloud records
+              📊 {stats.local} local records · {stats.remote} database records
             </p>
           )}
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handlePush} disabled={syncing} className="btn-sakura btn-primary btn-sm">
-              {syncing ? 'Syncing...' : '📤 Push to Cloud'}
+              {syncing ? 'Syncing...' : '📤 Push to Database'}
             </button>
             <button onClick={handlePull} disabled={syncing} className="btn-sakura btn-secondary btn-sm">
-              {syncing ? 'Syncing...' : '📥 Pull from Cloud'}
+              {syncing ? 'Syncing...' : '📥 Pull from Database'}
             </button>
-            <button onClick={handleDisconnect} className="btn-sakura btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
-              Disconnect
-            </button>
+            <button onClick={() => refresh()} className="btn-sakura btn-ghost btn-sm">Refresh</button>
           </div>
           {status && <p className="text-xs" style={{ color: status.includes('Failed') ? 'var(--danger)' : 'var(--text-primary)' }}>{status}</p>}
         </div>
       ) : (
-        <>
-          <div className="p-3 rounded-lg space-y-2 text-xs" style={{ background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
-            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>📋 Setup steps:</p>
-            <ol className="space-y-1" style={{ paddingLeft: 16 }}>
-              <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Firebase Console</a> → Create Project</li>
-              <li>Build → Firestore Database → Create (production mode)</li>
-              <li>Project Settings → General → Web App → Register</li>
-              <li>Copy the Firebase config object below</li>
-            </ol>
-          </div>
-
-          <div className="space-y-2">
-            <input value={config.apiKey} onChange={(e) => setConfig({ ...config, apiKey: e.target.value })} placeholder="apiKey" className="input-sakura text-xs font-mono" />
-            <input value={config.authDomain} onChange={(e) => setConfig({ ...config, authDomain: e.target.value })} placeholder="authDomain" className="input-sakura text-xs font-mono" />
-            <input value={config.projectId} onChange={(e) => setConfig({ ...config, projectId: e.target.value })} placeholder="projectId" className="input-sakura text-xs font-mono" />
-            <input value={config.storageBucket} onChange={(e) => setConfig({ ...config, storageBucket: e.target.value })} placeholder="storageBucket" className="input-sakura text-xs font-mono" />
-            <input value={config.messagingSenderId} onChange={(e) => setConfig({ ...config, messagingSenderId: e.target.value })} placeholder="messagingSenderId" className="input-sakura text-xs font-mono" />
-            <input value={config.appId} onChange={(e) => setConfig({ ...config, appId: e.target.value })} placeholder="appId" className="input-sakura text-xs font-mono" />
-          </div>
-
-          <button onClick={handleConnect} className="btn-sakura btn-primary btn-sm">Connect</button>
-        </>
+        <div className="p-3 rounded-lg space-y-2 text-xs" style={{ background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
+          <p className="font-medium" style={{ color: 'var(--text-primary)' }}>⚠ Bridge not reachable</p>
+          <p>Start the local vault bridge to enable sync between browsers:</p>
+          <pre className="font-mono p-2 rounded" style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>npm run bridge</pre>
+          <p>(It normally runs automatically via launchd — see <code className="font-mono">com.jy.vault-bridge</code>.)</p>
+          <button onClick={() => refresh()} className="btn-sakura btn-primary btn-sm">Retry</button>
+        </div>
       )}
-
-      {status && !connected && <p className="text-xs" style={{ color: 'var(--danger)' }}>{status}</p>}
     </div>
   );
 }
