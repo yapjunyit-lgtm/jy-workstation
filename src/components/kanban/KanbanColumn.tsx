@@ -19,14 +19,15 @@ export function KanbanColumn({ column, label, tasks, onCardClick, onAddTask }: K
 
   return (
     <div
-      className="flex flex-col rounded-xl min-w-[280px] max-w-[320px] flex-1"
+      className="flex flex-col rounded-xl min-w-[280px] max-w-[320px] flex-1 h-full"
       style={{
         background: isOver ? 'var(--accent-soft)' : 'var(--bg-subtle)',
         transition: 'background 200ms ease-out',
+        minHeight: 0,
       }}
     >
       {/* Column header */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
             {label}
@@ -46,7 +47,8 @@ export function KanbanColumn({ column, label, tasks, onCardClick, onAddTask }: K
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className="flex flex-col gap-2 p-2 flex-1 overflow-y-auto min-h-[100px]"
+        className="flex flex-col gap-2 p-2 flex-1 overflow-y-auto min-h-0"
+        style={{ overscrollBehavior: 'contain' }}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.length === 0 && (
