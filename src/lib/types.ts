@@ -139,6 +139,34 @@ export interface QuickNote {
   createdAt: number;
 }
 
+// ── AI CONVERSATIONS ──
+export interface AIChatAction {
+  op: string;
+  ok: boolean;
+  id?: string;
+  title?: string;
+  error?: string;
+  date?: string;
+  start?: number;
+  end?: number;
+}
+
+export interface AIChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  createdAt: number;
+  actions?: AIChatAction[];
+}
+
+export interface AIConversation {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: AIChatMessage[];
+}
+
 // ── SCRATCHPAD ──
 export interface ScratchNote {
   id: string;

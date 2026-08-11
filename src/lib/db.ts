@@ -3,7 +3,7 @@ import type { Table } from 'dexie';
 import type {
   AuthRecord, Priority, KanbanTask, Blocker, Snippet,
   DataSource, ChecklistItem, STAREntry, SOPDocument,
-  TimeBlock, ScratchNote, SyncConfig, AppSettings, QuickNote,
+  TimeBlock, ScratchNote, SyncConfig, AppSettings, QuickNote, AIConversation,
 } from './types';
 
 export class WorkstationDB extends Dexie {
@@ -19,6 +19,7 @@ export class WorkstationDB extends Dexie {
   timeBlocks!: Table<TimeBlock, string>;
   scratchNotes!: Table<ScratchNote, string>;
   quickNotes!: Table<QuickNote, string>;
+  aiConversations!: Table<AIConversation, string>;
   syncConfig!: Table<SyncConfig, string>;
   appSettings!: Table<AppSettings, string>;
 
@@ -58,6 +59,24 @@ export class WorkstationDB extends Dexie {
       timeBlocks:      'id, date, type',
       scratchNotes:    'id, date',
       quickNotes:      'id, date, createdAt',
+      syncConfig:      'id',
+      appSettings:     'id',
+    });
+
+    this.version(4).stores({
+      auth:            'id',
+      priorities:      'id, date, rank, createdAt',
+      kanbanTasks:     'id, column, category, priority, targetDate',
+      blockers:        'id, status',
+      snippets:        'id, category, *tags',
+      dataSources:     'id, type',
+      checklistItems:  'id, category',
+      starEntries:     'id, weekStart',
+      sopDocuments:    'id, status',
+      timeBlocks:      'id, date, type',
+      scratchNotes:    'id, date',
+      quickNotes:      'id, date, createdAt',
+      aiConversations: 'id, updatedAt',
       syncConfig:      'id',
       appSettings:     'id',
     });

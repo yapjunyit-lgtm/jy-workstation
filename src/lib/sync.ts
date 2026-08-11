@@ -36,7 +36,7 @@ export async function exportFullBackupJSON(): Promise<void> {
   const tables = [
     'priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
     'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks',
-    'scratchNotes', 'syncConfig', 'appSettings',
+    'scratchNotes', 'quickNotes', 'aiConversations', 'syncConfig', 'appSettings',
   ] as const;
 
   const backup: Record<string, unknown[]> = {};
@@ -61,7 +61,7 @@ export async function importFullBackupJSON(file: File): Promise<void> {
   const tables = [
     'priorities', 'kanbanTasks', 'blockers', 'snippets', 'dataSources',
     'checklistItems', 'starEntries', 'sopDocuments', 'timeBlocks',
-    'scratchNotes', 'syncConfig', 'appSettings',
+    'scratchNotes', 'quickNotes', 'aiConversations', 'syncConfig', 'appSettings',
   ] as const;
 
   for (const table of tables) {
