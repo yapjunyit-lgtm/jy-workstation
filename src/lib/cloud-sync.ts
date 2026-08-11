@@ -73,7 +73,12 @@ export async function pushAllToCloud(): Promise<CountMap> {
 }
 
 // ── Pull: bridge → local ──────────────────────────────────────────────
-export async function pullAllFromCloud(): Promise<CountMap> {
+// Automatic sync never prunes local-only records — a record that exists
+// locally but not on the bridge is a pending local write, not a deletion.
+// The manual "Pull from Database" action in Settings opts in to pruning so
+// it keeps its documented "replace all local data" behavior.
+export async function pullAllFromCloud(opts: { prune?: boolean } = {}): Promise<CountMap> {
+  const { prune = false } = opts;
   const results: CountMap = {};
   for (const table of SYNC_TABLES) {
     try {
@@ -84,17 +89,18 @@ export async function pullAllFromCloud(): Promise<CountMap> {
         results[table] = 0; // bridge empty — keep local
         continue;
       }
-      const cloudIds = new Set<string>();
       for (const rec of records) {
-        cloudIds.add(rec.id as string);
         await db.table(table).put(rec as never);
       }
-      // Remove local records no longer on the bridge
-      const local = await db.table(table).toArray() as { id: string }[];
-      for (const rec of local) {
-        if (!cloudIds.has(rec.id)) await db.table(table).delete(rec.id);
+      if (prune) {
+        // Explicit replace: drop local rows absent from the bridge.
+        const cloudIds = new Set<string>(records.map((r: { id: unknown }) => r.id as string));
+        const local = await db.table(table).toArray() as { id: string }[];
+        for (const rec of local) {
+          if (!cloudIds.has(rec.id)) await db.table(table).delete(rec.id);
+        }
       }
-      results[table] = cloudIds.size;
+      results[table] = records.length;
       notifyStoreRefresh(table);
     } catch (e) {
       results[table] = 0;
@@ -220,8 +226,8 @@ export function attachAutoPush(): void {
 
 // ── One-shot full sync ────────────────────────────────────────────────
 export async function syncNow(): Promise<CountMap> {
-  const pulled = await pullAllFromCloud();
   const pushed = await pushAllToCloud();
+  const pulled = await pullAllFromCloud();
   return { ...pulled, ...pushed };
 }
 

@@ -76,7 +76,6 @@ export function PrioritiesDashboard() {
           <button
             onClick={() => setAddingPriority(!addingPriority)}
             className="btn-sakura btn-ghost btn-sm"
-            data-add-blocker
           >
             <Plus size={13} /> Add
           </button>

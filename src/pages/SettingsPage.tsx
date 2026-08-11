@@ -248,7 +248,7 @@ function CloudTab() {
     if (!confirm('This will REPLACE all local data with database data. Continue?')) return;
     setSyncing(true); setStatus('');
     try {
-      const results = await pullAllFromCloud();
+      const results = await pullAllFromCloud({ prune: true });
       const total = Object.values(results).reduce((a, b) => a + b, 0);
       setStatus(`Pulled ${total} records from local database. Reloading…`);
       setTimeout(() => window.location.reload(), 1500);
