@@ -32,6 +32,7 @@ export function AIAssistantPanel() {
   const [busy, setBusy] = useState(false);
   const [liveActions, setLiveActions] = useState<AssistantAction[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const active = conversations.find((c) => c.id === activeId) ?? null;
   const messages = active?.messages ?? [];
@@ -52,6 +53,7 @@ export function AIAssistantPanel() {
     const message = (text ?? input).trim();
     if (!message || busy) return;
     setInput('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
     setBusy(true);
     setLiveActions([]);
 
@@ -262,14 +264,21 @@ export function AIAssistantPanel() {
 
         {/* Input */}
         <div className="border-t p-3 flex items-center gap-2 flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-          <input
+          <textarea
+            ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
+            }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask for insights or make changes… (e.g. “Add a study block tomorrow 9–10”)"
             className="input-sakura text-sm flex-1"
+            rows={1}
             disabled={busy}
             aria-label="Message the assistant"
+            style={{ resize: 'none', overflowY: 'auto', maxHeight: 140, lineHeight: 1.55 }}
           />
           <button onClick={() => send()} disabled={busy || !input.trim()} className="btn-sakura btn-primary btn-sm" aria-label="Send message">
             {busy ? <Dots size={14} aria-hidden="true" /> : <Send size={14} aria-hidden="true" />}
