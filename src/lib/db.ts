@@ -44,6 +44,23 @@ export class WorkstationDB extends Dexie {
     this.version(2).stores({
       quickNotes:      'id, date, createdAt',
     });
+
+    this.version(3).stores({
+      auth:            'id',
+      priorities:      'id, date, rank, createdAt',
+      kanbanTasks:     'id, column, category, priority, targetDate',
+      blockers:        'id, status',
+      snippets:        'id, category, *tags',
+      dataSources:     'id, type',
+      checklistItems:  'id, category',
+      starEntries:     'id, weekStart',
+      sopDocuments:    'id, status',
+      timeBlocks:      'id, date, type',
+      scratchNotes:    'id, date',
+      quickNotes:      'id, date, createdAt',
+      syncConfig:      'id',
+      appSettings:     'id',
+    });
   }
 }
 

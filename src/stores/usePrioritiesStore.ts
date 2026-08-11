@@ -36,7 +36,13 @@ export const usePrioritiesStore = create<PrioritiesState>((set, get) => ({
 
   hydrateAll: async (silent) => {
     if (!silent) set({ loading: true });
-    const items = await db.priorities.orderBy('createdAt').reverse().toArray().catch(() => []);
+    const items = await db.priorities
+      .toArray()
+      .then((rows) => rows.sort((a, b) => b.createdAt - a.createdAt))
+      .catch((e) => {
+        console.error('[priorities] hydrateAll failed', e);
+        return [];
+      });
     set({ priorities: items, loading: false });
   },
 
